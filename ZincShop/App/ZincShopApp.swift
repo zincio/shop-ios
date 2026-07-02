@@ -1,16 +1,14 @@
 import SwiftUI
-import AppIntents
 
 @main
 struct ZincShopApp: App {
     @StateObject private var store = ProfileStore.shared
 
-    init() {
-        // Nudge the system to (re)register our App Shortcuts with Siri on
-        // launch — avoids stale-index states where Shortcuts can't find the
-        // AppShortcutsProvider after reinstalls.
-        ZincShopShortcuts.updateAppShortcutParameters()
-    }
+    // Note: no updateAppShortcutParameters() call — the shortcut has no dynamic
+    // parameters, and that call only triggers a benign but noisy
+    // "Failed to connect to linkd" error on the simulator. App Shortcuts are
+    // registered from build-time metadata at install, so no runtime nudge is
+    // needed.
 
     var body: some Scene {
         WindowGroup {

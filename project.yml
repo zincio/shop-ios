@@ -35,6 +35,12 @@ settings:
     # rejects the XPC that registers App Shortcuts with Siri.
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: "-"
+    # Xcode 16+/26 Debug builds place app code in a separate "debug dylib".
+    # The AppIntents runtime only scans the main executable, so it can't find
+    # our AppShortcutsProvider there — the shortcut tile shows (build-time
+    # metadata) but running it fails "Couldn't find AppShortcutsProvider".
+    # Keeping code in the main binary fixes runtime discovery.
+    ENABLE_DEBUG_DYLIB: "NO"
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: "YES"
 

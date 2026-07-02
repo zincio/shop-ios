@@ -1,0 +1,93 @@
+import SwiftUI
+
+/// Presents the MPP + Apple Pay purchase for a product and reports the outcome.
+/// Used both for Siri-initiated purchases (via `ProfileStore.pendingPurchase`)
+/// and direct in-app buys from `HomeView`.
+struct PurchaseFlowView: View {
+    let product: Product
+    var quantity: Int = 1
+
+    @EnvironmentObject private var store: ProfileStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var phase: Phase = .ready
+
+    private let coordinator = MPPPaymentCoordinator()
+
+    enum Phase: Equatable {
+        case ready, paying, success(OrderRecord), failure(String)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                ProductConfirmationSnippet(product: product)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+
+                content
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Confirm Purchase")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch phase {
+        case .ready:
+            VStack(spacing: 8) {
+                Button(action: { Task { await pay() } }) {
+                    Label("Pay with Apple Pay", systemImage: "applelogo")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                Text("Face ID confirms your purchase. Cap: \(capFormatted).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        case .paying:
+            ProgressView("Placing your order…")
+        case .success(let order):
+            VStack(spacing: 12) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.largeTitle).foregroundStyle(.green)
+                Text("Ordered!").font(.title2.bold())
+                Text("Order \(order.id.prefix(8))… is on the way.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Button("Done") { dismiss() }.buttonStyle(.bordered)
+            }
+        case .failure(let message):
+            VStack(spacing: 12) {
+                Image(systemName: "xmark.octagon.fill")
+                    .font(.largeTitle).foregroundStyle(.red)
+                Text(message).multilineTextAlignment(.center)
+                Button("Try Again") { phase = .ready }.buttonStyle(.bordered)
+            }
+        }
+    }
+
+    private var capFormatted: String {
+        (Double(store.priceCapCents) / 100).formatted(.currency(code: "USD"))
+    }
+
+    private func pay() async {
+        phase = .paying
+        do {
+            let order = try await coordinator.purchase(
+                product: product, quantity: quantity,
+                shipping: store.shipping, maxPriceCents: store.priceCapCents
+            )
+            store.upsert(order)
+            LiveActivityManager.start(for: order)
+            store.pendingPurchase = nil
+            phase = .success(order)
+        } catch {
+            phase = .failure(error.localizedDescription)
+        }
+    }
+}

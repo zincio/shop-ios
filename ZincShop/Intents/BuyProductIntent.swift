@@ -3,16 +3,19 @@ import SwiftUI
 
 /// The Siri entry point: "Hey Siri, buy toilet paper with Zinc."
 ///
-/// Runs the safe-to-do-headless part (search + confirmation), then stashes a
-/// `PendingPurchase` and opens the app so Apple Pay can present its sheet —
-/// Apple Pay's biometric approval is the purchase guard *and* the payment.
-struct BuyProductIntent: AppIntent {
+/// Runs the safe-to-do-headless part (search + confirmation) in the
+/// Siri/Shortcuts UI, then stashes a `PendingPurchase` and continues into the
+/// app so Apple Pay can present its sheet — Apple Pay's biometric approval is
+/// the purchase guard *and* the payment.
+///
+/// NOTE: do NOT set `openAppWhenRun = true` here. That opens the app before
+/// `perform()` runs, and the parameter prompt + `requestConfirmation` then try
+/// to present over the half-launched app, leaving a black screen. The correct
+/// pattern is `ForegroundContinuableIntent`: stay headless until after the
+/// user confirms, then request the foreground transition explicitly.
+struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Buy a Product"
     static let description = IntentDescription("Search a retailer and buy the top match.")
-
-    /// Opening the app lets us present Apple Pay (it can't appear from a
-    /// background intent).
-    static let openAppWhenRun = true
 
     @Parameter(title: "Product", requestValueDialog: "What would you like to buy?")
     var productQuery: String
@@ -43,8 +46,12 @@ struct BuyProductIntent: AppIntent {
             confirmationActionName: .buy
         )
 
-        // Hand off to the app to collect payment via Apple Pay.
+        // Hand off to the app to collect payment via Apple Pay. RootView
+        // observes pendingPurchase and presents the payment sheet on launch.
         store.pendingPurchase = PendingPurchase(product: top, quantity: 1)
-        return .result(dialog: "Opening Zinc to confirm payment for \(top.title).")
+        try await requestToContinueInForeground(
+            "Ready to pay for \(top.title) with Apple Pay."
+        )
+        return .result(dialog: "Finish your purchase in Zinc.")
     }
 }

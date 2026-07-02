@@ -10,6 +10,21 @@ configs:
   Debug: debug
   Release: release
 
+# One explicit scheme so Xcode defaults to running the app, not the widget
+# extension (running the widget scheme fails: the bundle only contains a Live
+# Activity, so SpringBoard has no widget descriptor to show).
+schemes:
+  ZincShop:
+    build:
+      targets:
+        ZincShop: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ZincShopTests
+
 settings:
   base:
     SWIFT_VERSION: "5.0"

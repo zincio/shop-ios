@@ -4,23 +4,27 @@ import AppIntents
 /// the app's display name "Zinc") in every App Shortcut phrase.
 ///
 /// The `\(\.$product)` token is an `AppEntity` (`ProductEntity`), which App
-/// Shortcut phrases allow inline — so Siri parses "Buy AA batteries with Zinc"
-/// and resolves the product via `ProductEntityQuery` (any product search can
-/// return), instead of falling back to its built-in "buy …" behavior (which was
-/// routing to Reminders). The parameterless phrase lets a user say just "Buy
-/// with Zinc" and get prompted.
+/// Shortcut phrases allow inline; Siri resolves it via `ProductEntityQuery`.
+///
+/// IMPORTANT — phrasing matters for Siri routing:
+///  - Avoid the verb "buy". It's tied to Siri's built-in purchase/commerce
+///    domain, which intercepts "buy …" ("I can't complete purchases…") before
+///    the App Shortcut. Apple's own examples use "Order"/"Reorder" (see HIG).
+///  - Use "on/from \(.applicationName)" rather than "with Zinc": "Zinc" is a
+///    common word (the metal), and "…with zinc" reads to Siri like a product
+///    ingredient. "on Zinc"/"from Zinc" frames it as the app.
 struct ZincShopShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: BuyProductIntent(),
             phrases: [
-                "Buy \(\.$product) with \(.applicationName)",
-                "Order \(\.$product) with \(.applicationName)",
-                "Get \(\.$product) with \(.applicationName)",
-                "Buy \(\.$product) on \(.applicationName)",
-                "Buy with \(.applicationName)",
+                "Order \(\.$product) on \(.applicationName)",
+                "Reorder \(\.$product) on \(.applicationName)",
+                "Order \(\.$product) from \(.applicationName)",
+                "Shop for \(\.$product) on \(.applicationName)",
+                "Order on \(.applicationName)",
             ],
-            shortTitle: "Buy a Product",
+            shortTitle: "Order a Product",
             systemImageName: "cart.fill"
         )
     }

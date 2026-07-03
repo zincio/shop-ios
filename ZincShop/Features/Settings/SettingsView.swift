@@ -19,8 +19,15 @@ struct SettingsView: View {
                     NavigationLink("Edit shipping address") { ShippingSetupView() }
                 }
                 Section("Siri") {
-                    Text("Say “Hey Siri, buy toilet paper with Zinc.”")
+                    Text("Say “Hey Siri, order paper towels on Zinc.”")
                         .font(.footnote).foregroundStyle(.secondary)
+                }
+                Section {
+                    Button("Show setup guide again") {
+                        store.hasOnboarded = false
+                    }
+                } footer: {
+                    Text("Replays the welcome, shipping, and enable-Siri walkthrough. Your saved address is kept.")
                 }
             }
             .navigationTitle("Settings")

@@ -6,11 +6,9 @@ import AppIntents
 /// a product search. Coverage is whatever search returns — the full catalog once
 /// live Zinc search is enabled, or `MockCatalog` in this prototype.
 struct ProductEntityQuery: EntityStringQuery {
-    private let zinc = ZincClient()
-
     /// Resolve arbitrary spoken/typed text (the App Shortcut parameter path).
     func entities(matching string: String) async throws -> [ProductEntity] {
-        let products = try await zinc.search(string)
+        let products = try await ZincClient().search(string)
         await ProductEntityCache.shared.store(products)
         return products.map(ProductEntity.init)
     }

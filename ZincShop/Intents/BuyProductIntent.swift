@@ -41,12 +41,11 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
 
         // Confirm with an interactive snippet before committing to buy.
         try await requestConfirmation(
-            result: .result(
-                dialog: "Buy \(top.title) for \(top.priceFormatted)?",
-                view: ProductConfirmationSnippet(product: top)
-            ),
-            confirmationActionName: .buy
-        )
+            actionName: .buy,
+            dialog: "Buy \(top.title) for \(top.priceFormatted)?"
+        ) {
+            ProductConfirmationSnippet(product: top)
+        }
 
         // Hand off to the app to collect payment via Apple Pay. RootView
         // observes pendingPurchase and presents the payment sheet on launch.

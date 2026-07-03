@@ -3,9 +3,10 @@ import Combine
 
 /// A purchase chosen via Siri but not yet paid for. The intent stashes this and
 /// opens the app, which presents Apple Pay to complete it (Apple Pay = Face ID).
-struct PendingPurchase: Codable, Equatable {
+struct PendingPurchase: Codable, Equatable, Identifiable {
     let product: Product
     let quantity: Int
+    var id: String { product.url }
 }
 
 /// App-wide observable state, persisted to UserDefaults as JSON.
@@ -18,7 +19,15 @@ final class ProfileStore: ObservableObject {
     @Published var orders: [OrderRecord] { didSet { persist(\.orders, "orders") } }
     @Published var priceCapCents: Int { didSet { defaults.set(priceCapCents, forKey: "priceCap") } }
     @Published var pendingPurchase: PendingPurchase? {
-        didSet { persist(\.pendingPurchase, "pending") }
+        didSet {
+            // Remove the key when nil instead of persisting `null` (which would
+            // fail to decode on next load).
+            if let pending = pendingPurchase, let data = try? JSONEncoder().encode(pending) {
+                defaults.set(data, forKey: "pending")
+            } else {
+                defaults.removeObject(forKey: "pending")
+            }
+        }
     }
 
     private let defaults: UserDefaults

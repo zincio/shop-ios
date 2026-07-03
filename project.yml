@@ -30,11 +30,11 @@ settings:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    # Simulator builds sign ad-hoc with no team. Do NOT disable signing:
-    # unsigned apps get no embedded entitlements/app identity, and linkd then
-    # rejects the XPC that registers App Shortcuts with Siri.
+    # Real Team ID + automatic signing so the app installs on a physical device
+    # (and simulator). Automatic signing provisions the app, the widget, the
+    # App Intents, and the Apple Pay merchant entitlement under this team.
     CODE_SIGN_STYLE: Automatic
-    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: D436KBE6J9
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: "YES"
 

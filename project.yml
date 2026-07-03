@@ -20,6 +20,14 @@ schemes:
         ZincShop: all
     run:
       config: Debug
+      # iOS 27 beta: attaching the debugger enables "backtrace recording" which
+      # injects a diagnostics dylib that crashes with
+      # "-[OS_dispatch_mach_msg _setContext:]: unrecognized selector".
+      # Running without the debugger avoids the injection. XcodeGen can't toggle
+      # the backtrace-recording diagnostic directly, and it resets on every
+      # regenerate, so we disable debugging here (persists across regen).
+      # Re-enable (debugEnabled: true) once iOS 27 ships and the bug is fixed.
+      debugEnabled: false
     test:
       config: Debug
       targets:

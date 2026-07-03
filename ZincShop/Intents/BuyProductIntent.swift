@@ -17,11 +17,14 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Buy a Product"
     static let description = IntentDescription("Search a retailer and buy the top match.")
 
-    @Parameter(title: "Product", requestValueDialog: "What would you like to buy?")
-    var productQuery: String
+    // An AppEnum (not a free-form String) so Siri can parse the product inline
+    // in a phrase like "Buy paper towels with Zinc". If omitted, Siri asks and
+    // offers the item list.
+    @Parameter(title: "Item", requestValueDialog: "What would you like to buy?")
+    var item: ShoppingItem
 
     static var parameterSummary: some ParameterSummary {
-        Summary("Buy \(\.$productQuery)")
+        Summary("Buy \(\.$item)")
     }
 
     @MainActor
@@ -32,9 +35,10 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
             return .result(dialog: "Open Zinc and add your shipping address first, then try again.")
         }
 
-        let products = try await ZincClient().search(productQuery)
+        let query = item.searchQuery
+        let products = try await ZincClient().search(query)
         guard let top = products.first else {
-            return .result(dialog: "I couldn't find \(productQuery).")
+            return .result(dialog: "I couldn't find \(query).")
         }
 
         // Confirm with an interactive snippet before committing to buy.

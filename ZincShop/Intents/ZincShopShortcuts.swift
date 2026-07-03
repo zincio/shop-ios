@@ -1,23 +1,23 @@
 import AppIntents
 
-/// Registers the spoken phrases. Siri requires the app name in App Shortcut
-/// phrases (the app's display name is "Zinc").
+/// Registers the spoken phrases. Siri requires the app name (`\(.applicationName)`,
+/// the app's display name "Zinc") in every App Shortcut phrase.
 ///
-/// NOTE: App Shortcut phrases may only embed `AppEntity`/`AppEnum` parameters,
-/// not a free-form `String`. So we can't capture an arbitrary product in a
-/// single utterance via a static phrase. Instead the user says "Buy with Zinc"
-/// and Siri prompts "What would you like to buy?" (the parameter's
-/// `requestValueDialog`), which accepts any product. To make a true one-shot
-/// "buy toilet paper with Zinc" work, model the product as an AppEnum of common
-/// items or an AppEntity with a dynamic query.
+/// The `\(\.$item)` token is an `AppEnum` (`ShoppingItem`), which App Shortcut
+/// phrases DO allow inline — so Siri parses "Buy paper towels with Zinc" as the
+/// item directly instead of falling back to its built-in "buy …" behavior
+/// (which was routing to Reminders). The parameterless phrases let a user say
+/// just "Buy with Zinc" and get prompted for the item.
 struct ZincShopShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: BuyProductIntent(),
             phrases: [
-                "Buy something with \(.applicationName)",
-                "Order with \(.applicationName)",
-                "Shop with \(.applicationName)",
+                "Buy \(\.$item) with \(.applicationName)",
+                "Order \(\.$item) with \(.applicationName)",
+                "Get \(\.$item) with \(.applicationName)",
+                "Buy \(\.$item) on \(.applicationName)",
+                "Buy with \(.applicationName)",
             ],
             shortTitle: "Buy a Product",
             systemImageName: "cart.fill"

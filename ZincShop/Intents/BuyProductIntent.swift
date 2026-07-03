@@ -17,14 +17,15 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Buy a Product"
     static let description = IntentDescription("Search a retailer and buy the top match.")
 
-    // An AppEnum (not a free-form String) so Siri can parse the product inline
-    // in a phrase like "Buy paper towels with Zinc". If omitted, Siri asks and
-    // offers the item list.
-    @Parameter(title: "Item", requestValueDialog: "What would you like to buy?")
-    var item: ShoppingItem
+    // An AppEntity (not a free-form String) so Siri can parse ANY product inline
+    // in a phrase like "Buy AA batteries with Zinc". Siri resolves the words via
+    // ProductEntityQuery before perform() runs; if omitted, it asks and offers
+    // suggestions.
+    @Parameter(title: "Product", requestValueDialog: "What would you like to buy?")
+    var product: ProductEntity
 
     static var parameterSummary: some ParameterSummary {
-        Summary("Buy \(\.$item)")
+        Summary("Buy \(\.$product)")
     }
 
     @MainActor
@@ -35,11 +36,8 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
             return .result(dialog: "Open Zinc and add your shipping address first, then try again.")
         }
 
-        let query = item.searchQuery
-        let products = try await ZincClient().search(query)
-        guard let top = products.first else {
-            return .result(dialog: "I couldn't find \(query).")
-        }
+        // Siri already resolved the product via ProductEntityQuery — no re-search.
+        let top = product.product
 
         // Confirm with an interactive snippet before committing to buy.
         try await requestConfirmation(

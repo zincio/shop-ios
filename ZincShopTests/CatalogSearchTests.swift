@@ -7,9 +7,9 @@ final class CatalogSearchTests: XCTestCase {
         XCTAssertEqual(results.first?.title.lowercased().contains("toilet"), true)
     }
 
-    func testNeverReturnsEmptyForDemo() async throws {
+    func testReturnsEmptyForNoMatch() async throws {
         let results = try await MockCatalog().search("zzz-nonexistent-item")
-        XCTAssertFalse(results.isEmpty, "Demo search should always return something")
+        XCTAssertTrue(results.isEmpty, "Unknown query should return no matches, not the wrong item")
     }
 
     func testPaperTowelsMatch() async throws {

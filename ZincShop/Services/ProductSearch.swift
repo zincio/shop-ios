@@ -56,13 +56,14 @@ struct MockCatalog: ProductSearching {
 
     func search(_ query: String) async throws -> [Product] {
         let q = query.lowercased()
-        let scored = Self.items
+        // Return matches ranked by overlap; no match -> empty (so an unknown
+        // spoken product reports "not found" rather than the wrong item). Live
+        // Zinc search covers arbitrary products; the mock covers its own list.
+        return Self.items
             .map { (item: $0, score: Self.score($0.title.lowercased(), against: q)) }
             .filter { $0.score > 0 }
             .sorted { $0.score > $1.score }
             .map(\.item)
-        // Always return *something* so a demo voice query never dead-ends.
-        return scored.isEmpty ? Array(Self.items.prefix(1)) : scored
     }
 
     private static func score(_ title: String, against query: String) -> Int {

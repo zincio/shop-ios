@@ -31,26 +31,25 @@ enum SearchResponseMapper {
 /// works without depending on the live (metered) search endpoint. Replace with
 /// live search results in production.
 struct MockCatalog: ProductSearching {
+    // Titles are short, speakable category names. They double as the values Siri
+    // learns for the AppEntity phrase parameter (from `suggestedEntities`), so a
+    // spoken "order paper towels on Zinc" resolves to an item. Long marketing
+    // names here would break voice matching.
     static let items: [Product] = [
         Product(url: "https://www.amazon.com/dp/B01N5IB20Q",
-                title: "Amazon Brand Toilet Paper, 30 Rolls",
-                priceCents: 2399,
+                title: "Toilet Paper", priceCents: 2399,
                 imageURL: nil, retailer: "amazon"),
         Product(url: "https://www.amazon.com/dp/B00OFM4RHA",
-                title: "Bounty Quick-Size Paper Towels, 8 Family Rolls",
-                priceCents: 1997,
+                title: "Paper Towels", priceCents: 1997,
                 imageURL: nil, retailer: "amazon"),
         Product(url: "https://www.amazon.com/dp/B07GR4Y4Y8",
-                title: "AmazonFresh Colombia Whole Bean Coffee, 32 oz",
-                priceCents: 1499,
+                title: "Coffee", priceCents: 1499,
                 imageURL: nil, retailer: "amazon"),
         Product(url: "https://www.amazon.com/dp/B00DBA92RC",
-                title: "Tide Liquid Laundry Detergent, 64 loads",
-                priceCents: 1294,
+                title: "Laundry Detergent", priceCents: 1294,
                 imageURL: nil, retailer: "amazon"),
         Product(url: "https://www.amazon.com/dp/B07JGBW826",
-                title: "Dish Soap, 28 fl oz",
-                priceCents: 399,
+                title: "Dish Soap", priceCents: 399,
                 imageURL: nil, retailer: "amazon"),
     ]
 

@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.in-app-payments</key>
 	<array>
-		<string>merchant.io.zinc.zincshop</string>
+		<string>merchant.com.zinc.shopdemo</string>
 	</array>
 </dict>
 </plist>

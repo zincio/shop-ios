@@ -33,20 +33,38 @@ real captured challenge.
 
 ## Voice flow
 
-1. "Hey Siri, **buy with Zinc**" → Siri asks "What would you like to buy?"
-   (App Shortcut phrases can't embed free-form text, so the product is a
-   follow-up prompt — see note in `ZincShopShortcuts.swift`).
-2. The intent searches Zinc and shows the top match + price in a confirmation
+1. "Hey Siri, **order paper towels on Zinc**." The product is an `AppEntity`
+   (`ProductEntity`), so Siri parses it inline; say just "order on Zinc" to be
+   prompted. (Avoid "buy" — it collides with Siri's built-in purchase domain;
+   see `ZincShopShortcuts.swift`.)
+2. The intent resolves the product and shows the match + price in a confirmation
    snippet.
 3. On confirm, the app foregrounds and presents **Apple Pay** — the biometric
    tap is both the purchase guard and the payment (Apple Pay can't appear from a
    background intent).
 4. Order placed → tracked via a Live Activity (Lock Screen / Dynamic Island).
 
+## First run: enabling the Siri shortcut (required)
+
+On first launch the app shows a short onboarding (`OnboardingView`): welcome →
+shipping address → **enable Siri**. App Shortcuts don't respond to Siri until
+they're enabled for the app, so if Siri answers *"I can't … in the Zinc app"*
+instead of running the shortcut, it isn't enabled yet:
+
+1. **Shortcuts** app → search "Zinc" → make sure **"Order a Product"** is enabled
+   / **Use with Siri** is on. (Or **Settings → Apps → Zinc → Siri**.)
+2. Launch Zinc once and finish onboarding (shipping is required by the intent).
+3. Say **"Hey Siri, order paper towels on Zinc"** (also: toilet paper, coffee,
+   laundry detergent, dish soap). Give Siri ~30s after install to index.
+
+> Non-voice entry points that always work: tap **"Order a Product"** in the
+> Shortcuts app, Spotlight, or the Action Button.
+
 ## Project layout
 
 - `ZincShop/` — app: `Models`, `Services` (ZincClient, MPP coordinator, Apple
-  Pay), `Intents` (Siri), `Features` (SwiftUI), plus `App`.
+  Pay), `Intents` (Siri: `BuyProductIntent`, `ProductEntity`), `Features`
+  (SwiftUI, incl. `Onboarding`), plus `App`.
 - `ZincShopWidget/` — Live Activity UI.
 - `Shared/` — `OrderTrackingAttributes` (app + widget).
 - `ZincShopTests/` — challenge parsing, order encode/decode, search.
@@ -74,6 +92,15 @@ xcodebuild test  -scheme ZincShop \
 For Siri, Apple Pay, and Face ID you need a **real device** with a development
 team, the Apple Pay capability, and a registered merchant id.
 
+### Running on the iOS 27 beta
+
+The scheme sets `debugEnabled: false` (runs **without** the debugger). Attaching
+the debugger on iOS 27 triggers a backtrace-recording crash
+(`-[OS_dispatch_mach_msg _setContext:]: unrecognized selector`). Consequence:
+no breakpoints / Xcode console while running — use **Console.app** (subsystem
+`io.zinc.zincshop`) or `xcrun simctl spawn <dev> log stream`. Revert to
+`debugEnabled: true` in `project.yml` once the OS ships and the bug is fixed.
+
 ## Prototype limitations / TODO before real money
 
 - **Stripe integration seam** — `StripeMPPAdapter.credential(...)` currently
@@ -82,8 +109,8 @@ team, the Apple Pay capability, and a registered merchant id.
   (publishable key, `STPApplePayContext`), and confirm the credential format
   with Zinc. This is the one piece that can't be exercised offline.
 - **Search** — `ZincClient.search` tries the live agent-search endpoint and
-  falls back to a small demo catalog (`MockCatalog`) of real Amazon URLs so the
-  flow always works. Swap to live results once the search contract is confirmed.
+  falls back to a small demo catalog (`MockCatalog`). Voice coverage = whatever
+  search returns: with the mock it's the demo items (short, speakable titles so
+  Siri matches them); wire up live Zinc search to cover arbitrary products by
+  voice.
 - Single retailer (Amazon), single top-result purchase; no cart/returns.
-- One-shot "buy toilet paper with Zinc" needs the product modeled as an
-  AppEnum/AppEntity (see `ZincShopShortcuts.swift`).

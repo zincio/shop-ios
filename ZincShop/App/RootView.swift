@@ -11,7 +11,7 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if store.shipping.isComplete {
+            if store.hasOnboarded {
                 TabView {
                     HomeView()
                         .tabItem { Label("Shop", systemImage: "cart") }
@@ -21,7 +21,7 @@ struct RootView: View {
                         .tabItem { Label("Settings", systemImage: "gearshape") }
                 }
             } else {
-                ShippingSetupView()
+                OnboardingView()
             }
         }
         // A purchase initiated by Siri lands here: present Apple Pay to finish it.
@@ -34,6 +34,8 @@ struct RootView: View {
     }
 
     private func syncPendingPurchase() {
+        // Don't surface a purchase over the first-run onboarding.
+        guard store.hasOnboarded else { return }
         if let pending = store.pendingPurchase, activePurchase == nil {
             activePurchase = pending
         }

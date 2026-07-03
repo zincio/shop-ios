@@ -15,6 +15,7 @@ struct PendingPurchase: Codable, Equatable, Identifiable {
 final class ProfileStore: ObservableObject {
     static let shared = ProfileStore()
 
+    @Published var hasOnboarded: Bool { didSet { defaults.set(hasOnboarded, forKey: "hasOnboarded") } }
     @Published var shipping: ShippingProfile { didSet { persist(\.shipping, "shipping") } }
     @Published var orders: [OrderRecord] { didSet { persist(\.orders, "orders") } }
     @Published var priceCapCents: Int { didSet { defaults.set(priceCapCents, forKey: "priceCap") } }
@@ -34,6 +35,7 @@ final class ProfileStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.hasOnboarded = defaults.bool(forKey: "hasOnboarded")
         self.shipping = Self.load(ShippingProfile.self, "shipping", defaults) ?? ShippingProfile()
         self.orders = Self.load([OrderRecord].self, "orders", defaults) ?? []
         let cap = defaults.integer(forKey: "priceCap")

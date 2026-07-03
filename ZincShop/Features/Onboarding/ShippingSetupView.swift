@@ -1,45 +1,26 @@
 import SwiftUI
 
+/// Standalone shipping editor used from Settings. (First-run collection happens
+/// in OnboardingView.)
 struct ShippingSetupView: View {
     @EnvironmentObject private var store: ProfileStore
+    @Environment(\.dismiss) private var dismiss
     @State private var draft = ShippingProfile()
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Where should we ship?") {
-                    TextField("First name", text: $draft.firstName)
-                        .textContentType(.givenName)
-                    TextField("Last name", text: $draft.lastName)
-                        .textContentType(.familyName)
-                    TextField("Address line 1", text: $draft.addressLine1)
-                        .textContentType(.fullStreetAddress)
-                    TextField("Address line 2 (optional)", text: $draft.addressLine2)
-                    TextField("City", text: $draft.city)
-                        .textContentType(.addressCity)
-                    TextField("State", text: $draft.state)
-                        .textContentType(.addressState)
-                    TextField("ZIP", text: $draft.postalCode)
-                        .textContentType(.postalCode)
-                        .keyboardType(.numbersAndPunctuation)
-                    TextField("Phone", text: $draft.phoneNumber)
-                        .textContentType(.telephoneNumber)
-                        .keyboardType(.phonePad)
-                }
-                Section {
-                    Button("Save & Continue") {
-                        store.shipping = draft
-                    }
-                    .disabled(!draft.isComplete)
-                }
-                Section {
-                    Text("Then enable “Buy with Zinc” in Siri and say “Hey Siri, buy toilet paper with Zinc.”")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+        Form {
+            Section("Shipping address") {
+                ShippingFields(profile: $draft)
             }
-            .navigationTitle("Welcome to Zinc")
-            .onAppear { draft = store.shipping }
+            Section {
+                Button("Save") {
+                    store.shipping = draft
+                    dismiss()
+                }
+                .disabled(!draft.isComplete)
+            }
         }
+        .navigationTitle("Shipping")
+        .onAppear { draft = store.shipping }
     }
 }

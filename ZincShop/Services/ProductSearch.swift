@@ -4,25 +4,24 @@ protocol ProductSearching {
     func search(_ query: String) async throws -> [Product]
 }
 
-/// Best-effort mapper for the live agent-search response. The exact schema is
-/// unverified in this prototype, so we decode defensively and tolerate missing
-/// fields; anything unmappable yields an empty list and triggers the fallback.
+/// Maps Zinc's cross-retailer search response
+/// (`GET /search` → `{ results: [{ url, retailer, title, image, price, … }] }`)
+/// into `Product`. Decodes defensively; items missing a url/title are skipped,
+/// and anything unmappable yields an empty list (→ fallback).
 enum SearchResponseMapper {
-    static func products(from data: Data, retailer: String) -> [Product] {
-        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    static func products(from data: Data) -> [Product] {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let rawList = root["results"] as? [[String: Any]]
         else { return [] }
-        let rawList = (root["results"] as? [[String: Any]])
-            ?? (root["products"] as? [[String: Any]])
-            ?? []
         return rawList.compactMap { item in
-            guard let url = (item["url"] as? String) ?? (item["product_url"] as? String),
-                  let title = (item["title"] as? String) ?? (item["name"] as? String)
+            guard let url = item["url"] as? String,
+                  let title = item["title"] as? String
             else { return nil }
-            let cents = (item["price"] as? Int)
-                ?? Int((item["price"] as? Double ?? 0) * 100)
-            let img = (item["image"] as? String) ?? (item["image_url"] as? String)
+            let cents = (item["price"] as? Int) ?? Int((item["price"] as? Double ?? 0) * 100)
+            let image = (item["image"] as? String).flatMap(URL.init(string:))
+            let retailer = (item["retailer"] as? String) ?? "amazon"
             return Product(url: url, title: title, priceCents: cents,
-                           imageURL: img.flatMap(URL.init(string:)), retailer: retailer)
+                           imageURL: image, retailer: retailer)
         }
     }
 }

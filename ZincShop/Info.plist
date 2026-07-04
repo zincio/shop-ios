@@ -36,5 +36,7 @@
 	<string>$(APPLE_PAY_MERCHANT_ID)</string>
 	<key>ZincBaseURL</key>
 	<string>$(ZINC_BASE_URL)</string>
+	<key>ZincApiKey</key>
+	<string>$(ZINC_API_KEY)</string>
 </dict>
 </plist>

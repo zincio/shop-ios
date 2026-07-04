@@ -108,9 +108,10 @@ no breakpoints / Xcode console while running — use **Console.app** (subsystem
   Stripe iOS SDK to actually charge the connected account from the 402 `request`
   (publishable key, `STPApplePayContext`), and confirm the credential format
   with Zinc. This is the one piece that can't be exercised offline.
-- **Search** — `ZincClient.search` tries the live agent-search endpoint and
-  falls back to a small demo catalog (`MockCatalog`). Voice coverage = whatever
-  search returns: with the mock it's the demo items (short, speakable titles so
-  Siri matches them); wire up live Zinc search to cover arbitrary products by
-  voice.
-- Single retailer (Amazon), single top-result purchase; no cart/returns.
+- **Search** — `ZincClient.search` calls Zinc's cross-retailer search
+  (`GET /search?q=…`, Bearer key) and falls back to a small demo catalog
+  (`MockCatalog`) when no key is set or the call fails. Add your key to
+  `Config/Secrets.xcconfig` as `ZINC_API_KEY` to enable live results.
+  ⚠️ Demo only — the Bearer key ships on-device; a production build must move
+  search behind a backend.
+- Single retailer per order (Amazon), single top-result purchase; no cart/returns.

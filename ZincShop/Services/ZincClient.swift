@@ -38,19 +38,21 @@ struct ZincClient {
         return try await searchFallback.search(query)
     }
 
+    /// Cross-retailer search: GET /search?q=… with a Bearer API key.
+    /// Returns [] (→ fallback) when no key is configured or the call fails.
     private func liveSearch(_ query: String, retailer: String) async throws -> [Product] {
-        var comps = URLComponents(url: baseURL.appendingPathComponent("agent/search"),
+        let key = SecretsStore.zincApiKey
+        guard !key.isEmpty else { return [] }
+        var comps = URLComponents(url: baseURL.appendingPathComponent("search"),
                                   resolvingAgainstBaseURL: false)
-        comps?.queryItems = [
-            .init(name: "query", value: query),
-            .init(name: "retailer", value: retailer),
-        ]
+        comps?.queryItems = [.init(name: "q", value: query)]
         guard let url = comps?.url else { return [] }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return [] }
-        return SearchResponseMapper.products(from: data, retailer: retailer)
+        return SearchResponseMapper.products(from: data)
     }
 
     // MARK: Create order (the 402 dance is driven by MPPPaymentCoordinator)

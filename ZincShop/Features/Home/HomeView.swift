@@ -44,7 +44,15 @@ struct HomeView: View {
         isSearching = true; errorText = nil
         defer { isSearching = false }
         do {
-            results = try await zinc.search(query)
+            // Foreground search can pay the MPP $0.01 challenge with Apple Pay
+            // when no Bearer key is set. (Keyed search ignores this closure.)
+            results = try await zinc.search(query) { challenges in
+                guard let stripe = challenges.first(where: { $0.method == "stripe" }) else {
+                    throw PaymentError.noStripeRail
+                }
+                return try await ApplePayService().pay(challenge: stripe,
+                                                       productTitle: "Zinc product search")
+            }
         } catch {
             errorText = error.localizedDescription
         }

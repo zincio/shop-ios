@@ -108,10 +108,15 @@ no breakpoints / Xcode console while running — use **Console.app** (subsystem
   Stripe iOS SDK to actually charge the connected account from the 402 `request`
   (publishable key, `STPApplePayContext`), and confirm the credential format
   with Zinc. This is the one piece that can't be exercised offline.
-- **Search** — `ZincClient.search` calls Zinc's cross-retailer search
-  (`GET /search?q=…`, Bearer key) and falls back to a small demo catalog
-  (`MockCatalog`) when no key is set or the call fails. Add your key to
-  `Config/Secrets.xcconfig` as `ZINC_API_KEY` to enable live results.
-  ⚠️ Demo only — the Bearer key ships on-device; a production build must move
-  search behind a backend.
+- **Search** — `ZincClient.search` has three tiers:
+  1. **Keyed** cross-retailer search (`GET /search?q=…`, Bearer key) when
+     `ZINC_API_KEY` is set — no per-call charge.
+  2. **MPP** agent search (`GET /agent/search?q=…`, **$0.01/call** via the 402
+     flow) when no key is set — paid with Apple Pay by the foreground in-app
+     search. Background/Siri entity resolution can't present Apple Pay, so it
+     skips this tier.
+  3. **Demo catalog** (`MockCatalog`) otherwise / on any failure.
+
+  ⚠️ Demo only — the Bearer key ships on-device and MPP search charges per call;
+  a production build must move search behind a backend.
 - Single retailer per order (Amazon), single top-result purchase; no cart/returns.

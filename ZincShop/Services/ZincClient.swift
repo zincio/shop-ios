@@ -28,31 +28,64 @@ struct ZincClient {
 
     // MARK: Search
 
-    func search(_ query: String, retailer: String = "amazon") async throws -> [Product] {
-        do {
-            let live = try await liveSearch(query, retailer: retailer)
-            if !live.isEmpty { return live }
-        } catch {
-            // Live search is metered/unverified in this prototype — fall back.
+    /// Satisfies a `402` search challenge and returns the MPP credential to
+    /// retry with. Provided by the foreground caller (Apple Pay); omit it and
+    /// the metered MPP search is skipped.
+    typealias SearchPayment = (_ challenges: [PaymentChallenge]) async throws -> String
+
+    /// Search priority:
+    /// 1. Keyed cross-retailer search (`GET /search`, Bearer) when `ZINC_API_KEY`
+    ///    is set — no per-call charge.
+    /// 2. MPP agent search (`GET /agent/search`, $0.01 per call via 402) when no
+    ///    key but a `payment` closure is supplied to satisfy the challenge.
+    /// 3. Built-in demo catalog otherwise / on any failure.
+    func search(_ query: String, payment: SearchPayment? = nil) async throws -> [Product] {
+        if !SecretsStore.zincApiKey.isEmpty {
+            if let live = try? await keyedSearch(query), !live.isEmpty { return live }
+        } else if let payment {
+            if let live = try? await mppSearch(query, payment: payment), !live.isEmpty { return live }
         }
         return try await searchFallback.search(query)
     }
 
-    /// Cross-retailer search: GET /search?q=… with a Bearer API key.
-    /// Returns [] (→ fallback) when no key is configured or the call fails.
-    private func liveSearch(_ query: String, retailer: String) async throws -> [Product] {
-        let key = SecretsStore.zincApiKey
-        guard !key.isEmpty else { return [] }
-        var comps = URLComponents(url: baseURL.appendingPathComponent("search"),
-                                  resolvingAgainstBaseURL: false)
-        comps?.queryItems = [.init(name: "q", value: query)]
-        guard let url = comps?.url else { return [] }
+    /// Cross-retailer search: `GET /search?q=…` with a Bearer API key.
+    private func keyedSearch(_ query: String) async throws -> [Product] {
+        guard let url = searchURL("search", query) else { return [] }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await session.data(for: req)
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return [] }
+        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return [] }
         return SearchResponseMapper.products(from: data)
+    }
+
+    /// MPP agent search: `GET /agent/search?q=…`. No key; pays the 402 challenge
+    /// ($0.01) via the injected `payment` closure, then retries.
+    private func mppSearch(_ query: String, payment: SearchPayment) async throws -> [Product] {
+        guard let url = searchURL("agent/search", query) else { return [] }
+        func get(_ credential: String?) async throws -> (HTTPURLResponse, Data) {
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 20
+            if let credential { req.setValue(credential, forHTTPHeaderField: "Authorization") }
+            let (data, resp) = try await session.data(for: req)
+            guard let http = resp as? HTTPURLResponse else { throw ZincError.transport("non-HTTP response") }
+            return (http, data)
+        }
+
+        var (resp, data) = try await get(nil)
+        if resp.statusCode == 402 {
+            let credential = try await payment(PaymentChallenge.parseAll(from: resp))
+            (resp, data) = try await get(credential)
+        }
+        guard resp.statusCode == 200 else { return [] }
+        return SearchResponseMapper.products(from: data)
+    }
+
+    private func searchURL(_ path: String, _ query: String) -> URL? {
+        var comps = URLComponents(url: baseURL.appendingPathComponent(path),
+                                  resolvingAgainstBaseURL: false)
+        comps?.queryItems = [.init(name: "q", value: query)]
+        return comps?.url
     }
 
     // MARK: Create order (the 402 dance is driven by MPPPaymentCoordinator)

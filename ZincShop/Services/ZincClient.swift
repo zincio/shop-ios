@@ -91,7 +91,30 @@ struct ZincClient {
         return comps?.url
     }
 
-    // MARK: Create order (the 402 dance is driven by MPPPaymentCoordinator)
+    // MARK: Create order (keyed, wallet-funded)
+
+    /// `POST /orders` with a Bearer key. Funded by the account's prepaid wallet
+    /// (default `payment.mode = wallet`). Returns the raw response so the caller
+    /// can branch on 201 vs error.
+    func createKeyedOrder(body: OrderRequestBody) async throws
+        -> (response: HTTPURLResponse, data: Data) {
+        var req = URLRequest(url: baseURL.appendingPathComponent("orders"))
+        req.httpMethod = "POST"
+        req.timeoutInterval = 30
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try Self.encoder.encode(body)
+        do {
+            let (data, resp) = try await session.data(for: req)
+            guard let http = resp as? HTTPURLResponse else {
+                throw ZincError.transport("non-HTTP response")
+            }
+            return (http, data)
+        } catch let e as ZincError { throw e }
+        catch { throw ZincError.transport(error.localizedDescription) }
+    }
+
+    // MARK: Create order via MPP (the 402 dance is driven by OrderCoordinator)
 
     /// POST the order body. Pass `credential` (nil first, then the MPP credential).
     /// Returns the raw response so the caller can branch on 402 vs 201 and read
@@ -124,10 +147,16 @@ struct ZincClient {
 
     // MARK: Status
 
+    /// Poll order status. Keyed orders use the Bearer key; MPP orders use their
+    /// per-order `X-Api-Key`.
     func getOrder(id: String, apiKey: String?) async throws -> AgentOrderDTO {
         var req = URLRequest(url: baseURL.appendingPathComponent("orders/\(id)"))
         req.timeoutInterval = 20
-        if let apiKey { req.setValue(apiKey, forHTTPHeaderField: "X-Api-Key") }
+        if !SecretsStore.zincApiKey.isEmpty {
+            req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
+        } else if let apiKey {
+            req.setValue(apiKey, forHTTPHeaderField: "X-Api-Key")
+        }
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse else {
             throw ZincError.transport("non-HTTP response")

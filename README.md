@@ -39,10 +39,12 @@ real captured challenge.
    see `ZincShopShortcuts.swift`.)
 2. The intent resolves the product and shows the match + price in a confirmation
    snippet.
-3. On confirm, the app foregrounds and presents **Apple Pay** — the biometric
-   tap is both the purchase guard and the payment (Apple Pay can't appear from a
-   background intent).
-4. Order placed → tracked via a Live Activity (Lock Screen / Dynamic Island).
+3. On confirm, the app foregrounds and places the order:
+   - **With an API key (default):** Face ID guards, then `POST /orders`
+     (Bearer, wallet-funded).
+   - **Without a key:** Apple Pay pays the MPP `402` challenge (`/agent/orders`).
+4. Order placed → tracked via a Live Activity (Lock Screen / Dynamic Island),
+   polled with the Bearer key (keyed) or the per-order `X-Api-Key` (MPP).
 
 ## First run: enabling the Siri shortcut (required)
 
@@ -103,11 +105,15 @@ no breakpoints / Xcode console while running — use **Console.app** (subsystem
 
 ## Prototype limitations / TODO before real money
 
-- **Stripe integration seam** — `StripeMPPAdapter.credential(...)` currently
+- **Ordering** — with an API key, `OrderCoordinator` places wallet-funded
+  orders via `POST /orders` (Bearer), guarded by Face ID; the account's Zinc
+  wallet must be funded. Without a key it falls back to the MPP/Apple Pay path.
+  ⚠️ Demo only — the key ships on-device; production must place orders from a
+  backend.
+- **Stripe/MPP seam (no-key path only)** — `StripeMPPAdapter.credential(...)`
   builds the MPP credential envelope from the Apple Pay token. Wire in the
-  Stripe iOS SDK to actually charge the connected account from the 402 `request`
-  (publishable key, `STPApplePayContext`), and confirm the credential format
-  with Zinc. This is the one piece that can't be exercised offline.
+  Stripe iOS SDK to actually charge from the 402 `request` and confirm the
+  credential format with Zinc. Not exercised when an API key is set.
 - **Search** — `ZincClient.search` has three tiers:
   1. **Keyed** cross-retailer search (`GET /search?q=…`, Bearer key) when
      `ZINC_API_KEY` is set — no per-call charge. (Chosen over the

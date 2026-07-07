@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Presents the MPP + Apple Pay purchase for a product and reports the outcome.
+/// Presents the order confirmation for a product and reports the outcome.
 /// Used both for Siri-initiated purchases (via `ProfileStore.pendingPurchase`)
-/// and direct in-app buys from `HomeView`.
+/// and direct in-app buys from `HomeView`. With an API key, ordering is
+/// wallet-funded and guarded by Face ID; without one, it pays via Apple Pay (MPP).
 struct PurchaseFlowView: View {
     let product: Product
     var quantity: Int = 1
@@ -11,7 +12,8 @@ struct PurchaseFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var phase: Phase = .ready
 
-    private let coordinator = MPPPaymentCoordinator()
+    private let coordinator = OrderCoordinator()
+    private var keyed: Bool { !SecretsStore.zincApiKey.isEmpty }
 
     enum Phase: Equatable {
         case ready, paying, success(OrderRecord), failure(String)
@@ -42,7 +44,8 @@ struct PurchaseFlowView: View {
         case .ready:
             VStack(spacing: 8) {
                 Button(action: { Task { await pay() } }) {
-                    Label("Pay with Apple Pay", systemImage: "applelogo")
+                    Label(keyed ? "Confirm Order" : "Pay with Apple Pay",
+                          systemImage: keyed ? "faceid" : "applelogo")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)

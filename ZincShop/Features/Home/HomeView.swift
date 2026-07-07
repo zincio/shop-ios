@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject private var store: ProfileStore
     @State private var query = ""
     @State private var results: [Product] = []
     @State private var isSearching = false
@@ -21,13 +22,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                if results.isEmpty && !isSearching {
-                    ContentUnavailableView(
-                        "Search to shop",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try “toilet paper”, then tap to buy with Apple Pay.")
-                    )
-                }
+                if results.isEmpty && !isSearching { emptyState }
             }
             .navigationTitle("Zinc")
             .searchable(text: $query,
@@ -36,9 +31,38 @@ struct HomeView: View {
             .onSubmit(of: .search) { Task { await runSearch() } }
             .overlay { if isSearching { ProgressView() } }
             .sheet(item: $selectedProduct) { product in
-                PurchaseFlowView(product: product, quantity: 1)
+                PurchaseFlowView(product: product, quantity: 1, onOrdered: clearSearch)
             }
         }
+    }
+
+    @ViewBuilder private var emptyState: some View {
+        if store.recentSearches.isEmpty {
+            ContentUnavailableView(
+                "Search to shop",
+                systemImage: "magnifyingglass",
+                description: Text("Try “toilet paper”, then tap to buy with Apple Pay.")
+            )
+        } else {
+            Section("Recent Searches") {
+                ForEach(store.recentSearches, id: \.self) { term in
+                    Button {
+                        query = term
+                        Task { await runSearch() }
+                    } label: {
+                        Label(term, systemImage: "clock.arrow.circlepath")
+                    }
+                    .buttonStyle(.plain)
+                }
+                .onDelete { store.recentSearches.remove(atOffsets: $0) }
+            }
+        }
+    }
+
+    private func clearSearch() {
+        query = ""
+        results = []
+        errorText = nil
     }
 
     private func runSearch() async {
@@ -55,6 +79,7 @@ struct HomeView: View {
                 return try await ApplePayService().pay(challenge: stripe,
                                                        productTitle: "Zinc product search")
             }
+            store.addRecentSearch(query)
         } catch {
             errorText = error.localizedDescription
         }

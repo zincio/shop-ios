@@ -7,6 +7,8 @@ import SwiftUI
 struct PurchaseFlowView: View {
     let product: Product
     var quantity: Int = 1
+    /// Called once the order is successfully placed (e.g. to clear the search).
+    var onOrdered: (() -> Void)? = nil
 
     @EnvironmentObject private var store: ProfileStore
     @Environment(\.dismiss) private var dismiss
@@ -95,6 +97,7 @@ struct PurchaseFlowView: View {
             store.upsert(order)
             LiveActivityManager.start(for: order)
             store.pendingPurchase = nil
+            onOrdered?()
             phase = .success(order)
         } catch {
             phase = .failure(error.localizedDescription)

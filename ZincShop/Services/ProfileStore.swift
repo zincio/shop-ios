@@ -22,6 +22,9 @@ final class ProfileStore: ObservableObject {
     /// When on, orders are sent with max_price = 0 so they never finalize —
     /// safe for testing the order plumbing without a real purchase.
     @Published var devMode: Bool { didSet { defaults.set(devMode, forKey: "devMode") } }
+    @Published var recentSearches: [String] {
+        didSet { defaults.set(recentSearches, forKey: "recentSearches") }
+    }
     @Published var pendingPurchase: PendingPurchase? {
         didSet {
             // Remove the key when nil instead of persisting `null` (which would
@@ -44,7 +47,17 @@ final class ProfileStore: ObservableObject {
         let cap = defaults.integer(forKey: "priceCap")
         self.priceCapCents = cap == 0 ? 5000 : cap   // default $50 cap
         self.devMode = defaults.bool(forKey: "devMode")
+        self.recentSearches = defaults.stringArray(forKey: "recentSearches") ?? []
         self.pendingPurchase = Self.load(PendingPurchase.self, "pending", defaults)
+    }
+
+    /// Record a search term (most-recent-first, deduped, capped).
+    func addRecentSearch(_ query: String) {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty else { return }
+        var list = recentSearches.filter { $0.caseInsensitiveCompare(term) != .orderedSame }
+        list.insert(term, at: 0)
+        recentSearches = Array(list.prefix(8))
     }
 
     func upsert(_ order: OrderRecord) {

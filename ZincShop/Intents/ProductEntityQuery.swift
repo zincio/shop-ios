@@ -24,9 +24,12 @@ struct ProductEntityQuery: EntityStringQuery {
         return out
     }
 
-    /// Seed Siri's vocabulary and offer defaults when the user gives no product.
+    /// Intentionally empty so the Shortcuts/Siri value picker opens straight to
+    /// its search field (which drives `entities(matching:)` → live Zinc search)
+    /// rather than presenting a canned list of demo products. Arbitrary spoken or
+    /// typed products still resolve via `entities(matching:)`.
     func suggestedEntities() async throws -> [ProductEntity] {
-        MockCatalog.items.map(ProductEntity.init)
+        []
     }
 }
 

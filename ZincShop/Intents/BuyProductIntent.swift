@@ -1,7 +1,7 @@
 import AppIntents
 import SwiftUI
 
-/// The Siri entry point: "Hey Siri, buy toilet paper with Zinc."
+/// The Siri entry point: "Hey Siri, order toilet paper on Zinc."
 ///
 /// Runs the safe-to-do-headless part (search + confirmation) in the
 /// Siri/Shortcuts UI, then stashes a `PendingPurchase` and continues into the
@@ -14,18 +14,18 @@ import SwiftUI
 /// pattern is `ForegroundContinuableIntent`: stay headless until after the
 /// user confirms, then request the foreground transition explicitly.
 struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
-    static let title: LocalizedStringResource = "Buy a Product"
-    static let description = IntentDescription("Search a retailer and buy the top match.")
+    static let title: LocalizedStringResource = "Order a Product"
+    static let description = IntentDescription("Search a retailer and order the top match.")
 
     // An AppEntity (not a free-form String) so Siri can parse ANY product inline
-    // in a phrase like "Buy AA batteries with Zinc". Siri resolves the words via
+    // in a phrase like "Order AA batteries on Zinc". Siri resolves the words via
     // ProductEntityQuery before perform() runs; if omitted, it asks and offers
     // suggestions.
-    @Parameter(title: "Product", requestValueDialog: "What would you like to buy?")
+    @Parameter(title: "Product", requestValueDialog: "What would you like to order?")
     var product: ProductEntity
 
     static var parameterSummary: some ParameterSummary {
-        Summary("Buy \(\.$product)")
+        Summary("Order \(\.$product)")
     }
 
     @MainActor
@@ -39,10 +39,13 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
         // Siri already resolved the product via ProductEntityQuery — no re-search.
         let top = product.product
 
-        // Confirm with an interactive snippet before committing to buy.
+        // Confirm with an interactive snippet before committing to the order.
+        // Use `.order`, NOT `.buy`: `.buy` is a commerce-domain action name that
+        // makes Siri intercept the whole intent ("I can't … place orders …") and
+        // refuse before we run. `.order` is Apple's recommended purchase action.
         try await requestConfirmation(
-            actionName: .buy,
-            dialog: "Buy \(top.title) for \(top.priceFormatted)?"
+            actionName: .order,
+            dialog: "Order \(top.title) for \(top.priceFormatted)?"
         ) {
             ProductConfirmationSnippet(product: top)
         }

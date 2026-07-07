@@ -1,5 +1,22 @@
 import SwiftUI
 
+/// Ordering applied to search results. Defaults to cheapest-first so the top row
+/// is the best deal — the same bias the Siri "top match" purchase uses.
+enum SortOption: String, CaseIterable, Identifiable {
+    case priceLowToHigh = "Price: Low to High"
+    case priceHighToLow = "Price: High to Low"
+    case relevance = "Relevance"
+
+    var id: String { rawValue }
+    var systemImage: String {
+        switch self {
+        case .priceLowToHigh: return "arrow.up"
+        case .priceHighToLow: return "arrow.down"
+        case .relevance: return "sparkles"
+        }
+    }
+}
+
 struct HomeView: View {
     @EnvironmentObject private var store: ProfileStore
     @State private var query = ""
@@ -7,8 +24,19 @@ struct HomeView: View {
     @State private var isSearching = false
     @State private var errorText: String?
     @State private var selectedProduct: Product?
+    @State private var sortOption: SortOption = .priceLowToHigh
 
     private let zinc = ZincClient()
+
+    /// Results in the raw (relevance) order returned by search, re-sorted per the
+    /// selected option. Relevance keeps the search API's own ranking.
+    private var sortedResults: [Product] {
+        switch sortOption {
+        case .relevance:      return results
+        case .priceLowToHigh: return results.sorted { $0.priceCents < $1.priceCents }
+        case .priceHighToLow: return results.sorted { $0.priceCents > $1.priceCents }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,7 +44,7 @@ struct HomeView: View {
                 if let errorText {
                     Text(errorText).foregroundStyle(.red)
                 }
-                ForEach(results) { product in
+                ForEach(sortedResults) { product in
                     Button { selectedProduct = product } label: {
                         ProductRow(product: product)
                     }
@@ -30,9 +58,26 @@ struct HomeView: View {
                         prompt: "What do you need?")
             .onSubmit(of: .search) { Task { await runSearch() } }
             .overlay { if isSearching { ProgressView() } }
+            .toolbar {
+                if !results.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) { sortMenu }
+                }
+            }
             .sheet(item: $selectedProduct) { product in
                 PurchaseFlowView(product: product, quantity: 1, onOrdered: clearSearch)
             }
+        }
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            Picker("Sort", selection: $sortOption) {
+                ForEach(SortOption.allCases) { option in
+                    Label(option.rawValue, systemImage: option.systemImage).tag(option)
+                }
+            }
+        } label: {
+            Label("Sort", systemImage: "arrow.up.arrow.down")
         }
     }
 

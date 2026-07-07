@@ -33,12 +33,11 @@ struct ZincClient {
     /// the metered MPP search is skipped.
     typealias SearchPayment = (_ challenges: [PaymentChallenge]) async throws -> String
 
-    /// The retailer used for keyed product search (`amazon` or `walmart`).
-    var retailer = "amazon"
-
     /// Search priority:
-    /// 1. Keyed product search (`GET /products/search`, Bearer) when
-    ///    `ZINC_API_KEY` is set — no per-call charge.
+    /// 1. Keyed cross-retailer search (`GET /search`, Bearer) when `ZINC_API_KEY`
+    ///    is set — no per-call charge. Chosen over `/products/search` because it
+    ///    returns star ratings and many more results (the retailer-specific
+    ///    endpoint returns null stars and only a handful of items).
     /// 2. MPP agent search (`GET /agent/search`, $0.01 per call via 402) when no
     ///    key but a `payment` closure is supplied to satisfy the challenge.
     /// 3. Built-in demo catalog otherwise / on any failure.
@@ -51,22 +50,16 @@ struct ZincClient {
         return try await searchFallback.search(query)
     }
 
-    /// Retailer-specific search: `GET /products/search?query=…&retailer=…` with a
-    /// Bearer API key. Results carry `product_id`; the mapper derives the URL.
+    /// Cross-retailer search: `GET /search?q=…` with a Bearer API key. Results
+    /// carry `url`, per-item `retailer`, and `stars`.
     private func keyedSearch(_ query: String) async throws -> [Product] {
-        var comps = URLComponents(url: baseURL.appendingPathComponent("products/search"),
-                                  resolvingAgainstBaseURL: false)
-        comps?.queryItems = [
-            .init(name: "query", value: query),
-            .init(name: "retailer", value: retailer),
-        ]
-        guard let url = comps?.url else { return [] }
+        guard let url = searchURL("search", query) else { return [] }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await session.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return [] }
-        return SearchResponseMapper.products(from: data, defaultRetailer: retailer)
+        return SearchResponseMapper.products(from: data)
     }
 
     /// MPP agent search: `GET /agent/search?q=…`. No key; pays the 402 challenge

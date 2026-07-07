@@ -110,7 +110,11 @@ no breakpoints / Xcode console while running — use **Console.app** (subsystem
   with Zinc. This is the one piece that can't be exercised offline.
 - **Search** — `ZincClient.search` has three tiers:
   1. **Keyed** cross-retailer search (`GET /search?q=…`, Bearer key) when
-     `ZINC_API_KEY` is set — no per-call charge.
+     `ZINC_API_KEY` is set — no per-call charge. (Chosen over the
+     retailer-specific `GET /products/search`, which returns null star ratings
+     and far fewer results; the mapper still handles that endpoint's
+     `product_id` shape.) Rows show the image, star rating, brand, and retailer
+     when the API provides them.
   2. **MPP** agent search (`GET /agent/search?q=…`, **$0.01/call** via the 402
      flow) when no key is set — paid with Apple Pay by the foreground in-app
      search. Background/Siri entity resolution can't present Apple Pay, so it

@@ -30,7 +30,9 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("Zinc")
-            .searchable(text: $query, prompt: "What do you need?")
+            .searchable(text: $query,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "What do you need?")
             .onSubmit(of: .search) { Task { await runSearch() } }
             .overlay { if isSearching { ProgressView() } }
             .sheet(item: $selectedProduct) { product in
@@ -63,16 +65,42 @@ struct ProductRow: View {
     let product: Product
     var body: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.quaternary)
-                .frame(width: 48, height: 48)
-                .overlay(Image(systemName: "shippingbox.fill").foregroundStyle(.secondary))
-            VStack(alignment: .leading, spacing: 2) {
+            thumbnail
+            VStack(alignment: .leading, spacing: 3) {
                 Text(product.title).lineLimit(2)
-                Text(product.priceFormatted).font(.subheadline.bold()).foregroundStyle(.tint)
+                HStack(spacing: 6) {
+                    Text(product.priceFormatted)
+                        .font(.subheadline.bold()).foregroundStyle(.tint)
+                    Text("·").foregroundStyle(.tertiary)
+                    Text(product.retailer.capitalized)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
-            Spacer()
+            Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
         }
+    }
+
+    @ViewBuilder private var thumbnail: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(.quaternary)
+            .frame(width: 56, height: 56)
+            .overlay {
+                if let url = product.imageURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFit().padding(4)
+                        case .failure:
+                            Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
+                        default:
+                            ProgressView()
+                        }
+                    }
+                } else {
+                    Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

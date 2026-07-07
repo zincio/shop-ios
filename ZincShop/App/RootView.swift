@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var store: ProfileStore
+    @Environment(\.scenePhase) private var scenePhase
     /// Drives the purchase sheet. Kept separate from `store.pendingPurchase` and
     /// populated after the view appears so the sheet reliably presents even when
     /// a pending purchase already exists at launch (a Siri-initiated buy that
@@ -31,10 +32,19 @@ struct RootView: View {
         }
         .task {
             syncPendingPurchase()
-            await LiveActivityManager.reattach(to: store.orders)
-            OrderTracker.shared.resumeAll()
+            await refreshLiveActivities()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Re-adopt/refresh activities and restart any dead pollers whenever
+            // the app returns to the foreground (.task covers cold launch).
+            if phase == .active { Task { await refreshLiveActivities() } }
         }
         .onChange(of: store.pendingPurchase) { _, _ in syncPendingPurchase() }
+    }
+
+    private func refreshLiveActivities() async {
+        await LiveActivityManager.reattach(to: store.orders)
+        OrderTracker.shared.resumeAll()
     }
 
     private func syncPendingPurchase() {

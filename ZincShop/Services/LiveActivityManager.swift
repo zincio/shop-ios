@@ -46,9 +46,12 @@ enum LiveActivityManager {
         SharedImageStore.remove(orderID: order.id)
     }
 
-    /// On launch, re-adopt Live Activities started in a previous process so
-    /// updates keep flowing, and immediately end any that no longer map to an
-    /// in-progress order (stale/orphaned).
+    /// Re-adopt Live Activities started in a previous process (so updates keep
+    /// flowing) and end those that no longer map to an in-progress order. Safe to
+    /// call on launch and on every foreground. Dismissal policy is split:
+    /// - orphaned (no matching order at all) → `.immediate`
+    /// - matched but now terminal (just completed) → `.default`, so the final
+    ///   state lingers instead of vanishing the moment you reopen the app.
     static func reattach(to orders: [OrderRecord]) async {
         let byID = Dictionary(orders.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for activity in Activity<OrderTrackingAttributes>.activities {
@@ -58,10 +61,13 @@ enum LiveActivityManager {
                 await activity.update(.init(state: contentState(for: order), staleDate: nil))
                 cacheProductImage(for: order)
             } else {
-                let finalState = byID[id].map(contentState(for:)) ?? activity.content.state
+                let order = byID[id]
+                let dismissal: ActivityUIDismissalPolicy = order == nil ? .immediate : .default
+                let finalState = order.map(contentState(for:)) ?? activity.content.state
                 await activity.end(.init(state: finalState, staleDate: nil),
-                                   dismissalPolicy: .immediate)
+                                   dismissalPolicy: dismissal)
                 activities[id] = nil
+                if order == nil { SharedImageStore.remove(orderID: id) }
             }
         }
     }

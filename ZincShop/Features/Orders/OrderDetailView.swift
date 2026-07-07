@@ -11,13 +11,15 @@ struct OrderDetailView: View {
     private var order: OrderRecord? { store.orders.first { $0.id == orderID } }
 
     var body: some View {
-        Form {
+        List {
             if let order {
+                Section {
+                    heroHeader(order)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
                 Section("Item") {
-                    HStack(spacing: 12) {
-                        OrderThumbnail(url: order.productImageURL)
-                        Text(order.productTitle)
-                    }
+                    Text(order.productTitle)
                 }
                 Section("Status") {
                     LabeledContent("State") { StatusBadge(order: order) }
@@ -43,6 +45,7 @@ struct OrderDetailView: View {
                 Text("Order not found.")
             }
         }
+        .listStyle(.grouped)
         .navigationTitle("Order")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -54,6 +57,37 @@ struct OrderDetailView: View {
             }
         }
         .task { await refresh() }
+    }
+
+    /// Full-bleed product image at the top of the detail screen, with a graceful
+    /// placeholder while loading or when no image is available.
+    @ViewBuilder private func heroHeader(_ order: OrderRecord) -> some View {
+        ZStack {
+            Rectangle().fill(.quaternary)
+            if let url = order.productImageURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        placeholderIcon
+                    default:
+                        ProgressView()
+                    }
+                }
+            } else {
+                placeholderIcon
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 240)
+        .clipped()
+    }
+
+    private var placeholderIcon: some View {
+        Image(systemName: "shippingbox.fill")
+            .font(.system(size: 44))
+            .foregroundStyle(.secondary)
     }
 
     private func refresh() async {

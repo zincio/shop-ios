@@ -31,6 +31,7 @@ struct RootView: View {
         }
         .task {
             syncPendingPurchase()
+            await LiveActivityManager.reattach(to: store.orders)
             OrderTracker.shared.resumeAll()
         }
         .onChange(of: store.pendingPurchase) { _, _ in syncPendingPurchase() }

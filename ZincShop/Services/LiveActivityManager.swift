@@ -17,8 +17,19 @@ enum LiveActivityManager {
                 content: .init(state: state, staleDate: nil)
             )
             activities[order.id] = activity
+            cacheProductImage(for: order)
         } catch {
             // Live Activity unavailable (e.g. no widget, simulator limits) — ignore.
+        }
+    }
+
+    /// Downloads and caches the product thumbnail, then refreshes the activity so
+    /// the widget re-renders with the image in place.
+    private static func cacheProductImage(for order: OrderRecord) {
+        guard let url = order.productImageURL, !SharedImageStore.hasImage(orderID: order.id) else { return }
+        Task {
+            await SharedImageStore.cache(from: url, orderID: order.id)
+            await update(for: order)
         }
     }
 
@@ -32,6 +43,27 @@ enum LiveActivityManager {
         await activity.end(.init(state: contentState(for: order), staleDate: nil),
                            dismissalPolicy: .default)
         activities[order.id] = nil
+        SharedImageStore.remove(orderID: order.id)
+    }
+
+    /// On launch, re-adopt Live Activities started in a previous process so
+    /// updates keep flowing, and immediately end any that no longer map to an
+    /// in-progress order (stale/orphaned).
+    static func reattach(to orders: [OrderRecord]) async {
+        let byID = Dictionary(orders.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        for activity in Activity<OrderTrackingAttributes>.activities {
+            let id = activity.attributes.orderId
+            if let order = byID[id], order.isInProgress {
+                activities[id] = activity
+                await activity.update(.init(state: contentState(for: order), staleDate: nil))
+                cacheProductImage(for: order)
+            } else {
+                let finalState = byID[id].map(contentState(for:)) ?? activity.content.state
+                await activity.end(.init(state: finalState, staleDate: nil),
+                                   dismissalPolicy: .immediate)
+                activities[id] = nil
+            }
+        }
     }
 
     private static func contentState(for order: OrderRecord) -> OrderTrackingAttributes.ContentState {
@@ -45,6 +77,7 @@ enum LiveActivityManager {
             default: return tracking == nil ? 0.4 : 0.85
             }
         }()
-        return .init(status: order.statusDisplay, trackingNumber: tracking, progress: progress)
+        return .init(status: order.statusDisplay, trackingNumber: tracking, progress: progress,
+                     hasImage: SharedImageStore.hasImage(orderID: order.id))
     }
 }

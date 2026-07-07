@@ -76,6 +76,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.zinc.zincshop.widget
         INFOPLIST_FILE: ZincShopWidget/Info.plist
+        CODE_SIGN_ENTITLEMENTS: ZincShopWidget/ZincShopWidget.entitlements
         GENERATE_INFOPLIST_FILE: "NO"
 
   ZincShopTests:

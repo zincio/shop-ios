@@ -9,7 +9,7 @@ struct OrderTrackingLiveActivity: Widget {
             // Lock Screen / banner.
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Image(systemName: "shippingbox.fill").foregroundStyle(.tint)
+                    OrderThumbnail(orderID: context.attributes.orderId, size: 32)
                     Text(context.attributes.productTitle).font(.headline).lineLimit(1)
                     Spacer()
                     Text(context.state.status).font(.caption).foregroundStyle(.secondary)
@@ -23,7 +23,7 @@ struct OrderTrackingLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: "shippingbox.fill").foregroundStyle(.tint)
+                    OrderThumbnail(orderID: context.attributes.orderId, size: 32)
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.attributes.productTitle).font(.caption).lineLimit(1)
@@ -34,12 +34,35 @@ struct OrderTrackingLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "shippingbox.fill")
+                OrderThumbnail(orderID: context.attributes.orderId, size: 20)
             } compactTrailing: {
                 Text(context.state.status).font(.caption2).lineLimit(1)
             } minimal: {
-                Image(systemName: "shippingbox.fill")
+                OrderThumbnail(orderID: context.attributes.orderId, size: 20)
             }
+        }
+    }
+}
+
+/// Shows the cached product thumbnail for an order, falling back to a box icon.
+/// The image is loaded synchronously from the shared App Group container (widgets
+/// can't fetch remote images), written there by the app when the activity starts.
+private struct OrderThumbnail: View {
+    let orderID: String
+    var size: CGFloat = 28
+
+    var body: some View {
+        if let image = SharedImageStore.image(orderID: orderID) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.22))
+        } else {
+            Image(systemName: "shippingbox.fill")
+                .font(.system(size: size * 0.7))
+                .foregroundStyle(.tint)
+                .frame(width: size, height: size)
         }
     }
 }

@@ -13,9 +13,14 @@ struct OrderDetailView: View {
     var body: some View {
         Form {
             if let order {
-                Section("Item") { Text(order.productTitle) }
+                Section("Item") {
+                    HStack(spacing: 12) {
+                        OrderThumbnail(url: order.productImageURL)
+                        Text(order.productTitle)
+                    }
+                }
                 Section("Status") {
-                    LabeledContent("State", value: order.statusDisplay)
+                    LabeledContent("State") { StatusBadge(order: order) }
                     LabeledContent("Total", value: (Double(order.priceCents) / 100)
                         .formatted(.currency(code: "USD")))
                     LabeledContent("Order ID", value: order.id)

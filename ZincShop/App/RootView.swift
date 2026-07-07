@@ -29,7 +29,10 @@ struct RootView: View {
             PurchaseFlowView(product: pending.product, quantity: pending.quantity)
                 .environmentObject(store)
         }
-        .task { syncPendingPurchase() }
+        .task {
+            syncPendingPurchase()
+            OrderTracker.shared.resumeAll()
+        }
         .onChange(of: store.pendingPurchase) { _, _ in syncPendingPurchase() }
     }
 

@@ -96,6 +96,7 @@ struct PurchaseFlowView: View {
             )
             store.upsert(order)
             LiveActivityManager.start(for: order)
+            OrderTracker.shared.track(order)
             store.pendingPurchase = nil
             onOrdered?()
             phase = .success(order)

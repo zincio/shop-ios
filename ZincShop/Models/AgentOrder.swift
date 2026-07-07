@@ -76,4 +76,17 @@ struct OrderRecord: Codable, Identifiable, Hashable {
     }
 
     var statusDisplay: String { status.replacingOccurrences(of: "_", with: " ").capitalized }
+
+    /// True while the order is still moving toward fulfillment — used to decide
+    /// whether to keep polling / running the Live Activity.
+    var isInProgress: Bool {
+        if jobResultError != nil { return false }
+        if !trackingNumbers.isEmpty { return false }
+        switch status.lowercased() {
+        case "shipped", "delivered", "completed", "cancelled", "canceled", "failed", "error":
+            return false
+        default:
+            return true
+        }
+    }
 }

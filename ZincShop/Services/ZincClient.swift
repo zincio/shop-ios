@@ -141,8 +141,28 @@ struct ZincClient {
     }
 
     func decodeOrder(_ data: Data) throws -> AgentOrderDTO {
-        do { return try Self.decoder.decode(AgentOrderDTO.self, from: data) }
-        catch { throw ZincError.decoding(error.localizedDescription) }
+        do {
+            var dto = try Self.decoder.decode(AgentOrderDTO.self, from: data)
+            dto.jobResultError = Self.jobResultError(from: data)
+            return dto
+        } catch { throw ZincError.decoding(error.localizedDescription) }
+    }
+
+    /// Pull a failure reason out of `job_result` when present. Its exact shape
+    /// varies, so scan leniently and only surface something that looks like an
+    /// error (never the success/price payload).
+    static func jobResultError(from data: Data) -> String? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let jr = root["job_result"] as? [String: Any] else { return nil }
+        if let err = jr["error"] as? [String: Any] {
+            return (err["message"] as? String) ?? (err["code"] as? String) ?? "Order failed"
+        }
+        if let err = jr["error"] as? String { return err }
+        let type = ((jr["type"] as? String) ?? (jr["_type"] as? String) ?? "").lowercased()
+        if type.contains("error") || type.contains("fail") {
+            return (jr["message"] as? String) ?? (jr["code"] as? String) ?? "Order failed"
+        }
+        return nil
     }
 
     // MARK: Status

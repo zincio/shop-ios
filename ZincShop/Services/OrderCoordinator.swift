@@ -17,20 +17,24 @@ final class OrderCoordinator {
         self.applePay = applePay ?? ApplePayService()
     }
 
-    func purchase(product: Product, quantity: Int,
-                  shipping: ShippingProfile, maxPriceCents: Int) async throws -> OrderRecord {
-        // Guardrail: never order above the user's per-order price cap.
-        guard product.priceCents <= maxPriceCents else {
-            throw PaymentError.overPriceCap(amountCents: product.priceCents, capCents: maxPriceCents)
+    func purchase(product: Product, quantity: Int, shipping: ShippingProfile,
+                  maxPriceCents: Int, devMode: Bool = false) async throws -> OrderRecord {
+        // Dev mode sends max_price = 0 so the order can never finalize (safe
+        // testing); the price-cap guard is skipped since 0 would always trip it.
+        let effectiveMax = devMode ? 0 : maxPriceCents
+        if !devMode {
+            guard product.priceCents <= maxPriceCents else {
+                throw PaymentError.overPriceCap(amountCents: product.priceCents, capCents: maxPriceCents)
+            }
         }
 
         let body = OrderRequestBody(product: product, quantity: quantity, shipping: shipping,
-                                    maxPriceCents: maxPriceCents, idempotencyKey: UUID().uuidString)
+                                    maxPriceCents: effectiveMax, idempotencyKey: UUID().uuidString)
 
         if !SecretsStore.zincApiKey.isEmpty {
             return try await keyedOrder(body: body, product: product)
         } else {
-            return try await mppOrder(body: body, product: product, maxPriceCents: maxPriceCents)
+            return try await mppOrder(body: body, product: product, maxPriceCents: effectiveMax)
         }
     }
 

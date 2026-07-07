@@ -50,8 +50,14 @@ struct PurchaseFlowView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                Text("Face ID confirms your purchase. Cap: \(capFormatted).")
-                    .font(.caption).foregroundStyle(.secondary)
+                if store.devMode {
+                    Label("Dev mode: max price $0 — order won't complete.",
+                          systemImage: "hammer.fill")
+                        .font(.caption).foregroundStyle(.orange)
+                } else {
+                    Text("Face ID confirms your purchase. Cap: \(capFormatted).")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
         case .paying:
             ProgressView("Placing your order…")
@@ -83,7 +89,8 @@ struct PurchaseFlowView: View {
         do {
             let order = try await coordinator.purchase(
                 product: product, quantity: quantity,
-                shipping: store.shipping, maxPriceCents: store.priceCapCents
+                shipping: store.shipping, maxPriceCents: store.priceCapCents,
+                devMode: store.devMode
             )
             store.upsert(order)
             LiveActivityManager.start(for: order)

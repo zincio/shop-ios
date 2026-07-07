@@ -20,6 +20,12 @@ struct OrderDetailView: View {
                         .formatted(.currency(code: "USD")))
                     LabeledContent("Order ID", value: order.id)
                 }
+                if let problem = order.jobResultError {
+                    Section("Problem") {
+                        Label(problem, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                    }
+                }
                 if !order.trackingNumbers.isEmpty {
                     Section("Tracking") {
                         ForEach(order.trackingNumbers, id: \.self) { Text($0).textSelection(.enabled) }

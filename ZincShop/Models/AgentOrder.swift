@@ -9,6 +9,10 @@ struct AgentOrderDTO: Decodable {
     let maxPrice: Int?
     let items: [Item]
     let trackingNumbers: [String]
+    /// Failure reason from `job_result`, if the order didn't complete. Populated
+    /// by `ZincClient.decodeOrder` (not part of Codable — job_result's exact
+    /// shape varies, so it's parsed leniently from the raw response).
+    var jobResultError: String?
 
     struct Item: Decodable {
         let url: String?
@@ -30,6 +34,7 @@ struct AgentOrderDTO: Decodable {
         maxPrice = try c.decodeIfPresent(Int.self, forKey: .maxPrice)
         items = try c.decodeIfPresent([Item].self, forKey: .items) ?? []
         trackingNumbers = try c.decodeIfPresent([String].self, forKey: .trackingNumbers) ?? []
+        jobResultError = nil
     }
 }
 
@@ -48,6 +53,8 @@ struct OrderRecord: Codable, Identifiable, Hashable {
     var createdAt: Date
     /// Order-scoped key returned in the `X-Api-Key` response header.
     var apiKey: String?
+    /// Failure reason from `job_result`, shown in the order detail.
+    var jobResultError: String?
 
     init(dto: AgentOrderDTO, product: Product, apiKey: String?, createdAt: Date = Date()) {
         self.id = dto.id
@@ -58,12 +65,14 @@ struct OrderRecord: Codable, Identifiable, Hashable {
         self.priceCents = product.priceCents
         self.apiKey = apiKey
         self.createdAt = createdAt
+        self.jobResultError = dto.jobResultError
     }
 
     /// Merge a fresh server fetch into the stored record.
     mutating func apply(_ dto: AgentOrderDTO) {
         status = dto.status
         if !dto.trackingNumbers.isEmpty { trackingNumbers = dto.trackingNumbers }
+        jobResultError = dto.jobResultError
     }
 
     var statusDisplay: String { status.replacingOccurrences(of: "_", with: " ").capitalized }

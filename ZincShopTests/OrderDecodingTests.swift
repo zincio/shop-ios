@@ -28,6 +28,21 @@ final class OrderDecodingTests: XCTestCase {
         XCTAssertTrue(dto.items.isEmpty)
     }
 
+    func testJobResultErrorSurfaced() {
+        let e1 = #"{"id":"o1","status":"failed","job_result":{"type":"error","message":"max_price exceeded"}}"#
+        XCTAssertEqual(ZincClient.jobResultError(from: Data(e1.utf8)), "max_price exceeded")
+
+        let e2 = #"{"id":"o2","status":"failed","job_result":{"error":{"code":"insufficient_funds","message":"Wallet is empty"}}}"#
+        XCTAssertEqual(ZincClient.jobResultError(from: Data(e2.utf8)), "Wallet is empty")
+    }
+
+    func testJobResultSuccessOrMissingYieldsNoError() {
+        let ok = #"{"id":"o3","status":"placed","job_result":{"type":"success","price_components":{"total":1999}}}"#
+        XCTAssertNil(ZincClient.jobResultError(from: Data(ok.utf8)))
+        let none = #"{"id":"o4","status":"pending"}"#
+        XCTAssertNil(ZincClient.jobResultError(from: Data(none.utf8)))
+    }
+
     func testApplyMergesStatusAndTracking() throws {
         let product = Product(url: "u", title: "Toilet Paper", priceCents: 2399,
                               imageURL: nil, retailer: "amazon")

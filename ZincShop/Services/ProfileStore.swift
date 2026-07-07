@@ -19,6 +19,9 @@ final class ProfileStore: ObservableObject {
     @Published var shipping: ShippingProfile { didSet { persist(\.shipping, "shipping") } }
     @Published var orders: [OrderRecord] { didSet { persist(\.orders, "orders") } }
     @Published var priceCapCents: Int { didSet { defaults.set(priceCapCents, forKey: "priceCap") } }
+    /// When on, orders are sent with max_price = 0 so they never finalize —
+    /// safe for testing the order plumbing without a real purchase.
+    @Published var devMode: Bool { didSet { defaults.set(devMode, forKey: "devMode") } }
     @Published var pendingPurchase: PendingPurchase? {
         didSet {
             // Remove the key when nil instead of persisting `null` (which would
@@ -40,6 +43,7 @@ final class ProfileStore: ObservableObject {
         self.orders = Self.load([OrderRecord].self, "orders", defaults) ?? []
         let cap = defaults.integer(forKey: "priceCap")
         self.priceCapCents = cap == 0 ? 5000 : cap   // default $50 cap
+        self.devMode = defaults.bool(forKey: "devMode")
         self.pendingPurchase = Self.load(PendingPurchase.self, "pending", defaults)
     }
 

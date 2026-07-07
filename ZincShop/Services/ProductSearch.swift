@@ -30,8 +30,12 @@ enum SearchResponseMapper {
             }
             let cents = (item["price"] as? Int) ?? Int((item["price"] as? Double ?? 0) * 100)
             let image = (item["image"] as? String).flatMap(URL.init(string:))
+            let brand = (item["brand"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            let stars = (item["stars"] as? Double) ?? (item["stars"] as? Int).map(Double.init)
+            let numReviews = item["num_reviews"] as? Int
             return Product(url: url, title: title, priceCents: cents,
-                           imageURL: image, retailer: retailer)
+                           imageURL: image, retailer: retailer,
+                           brand: brand, stars: stars, numReviews: numReviews)
         }
     }
 

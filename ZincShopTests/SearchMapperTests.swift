@@ -62,6 +62,22 @@ final class SearchMapperTests: XCTestCase {
                        "https://www.walmart.com/ip/55049252")
     }
 
+    func testMapsBrandStarsAndReviews() {
+        let json = """
+        {"results":[
+          {"url":"https://x.com/p","title":"Widget","price":500,"brand":"Acme","stars":4.3,"num_reviews":88},
+          {"product_id":"B01","title":"NoBrand","price":100,"brand":"","stars":null}
+        ]}
+        """.data(using: .utf8)!
+        let p = SearchResponseMapper.products(from: json)
+        XCTAssertEqual(p.count, 2)
+        XCTAssertEqual(p[0].brand, "Acme")
+        XCTAssertEqual(p[0].stars, 4.3)
+        XCTAssertEqual(p[0].numReviews, 88)
+        XCTAssertNil(p[1].brand)   // empty string → nil
+        XCTAssertNil(p[1].stars)
+    }
+
     func testEmptyOrJunkYieldsNoProducts() {
         XCTAssertTrue(SearchResponseMapper.products(from: Data("{}".utf8)).isEmpty)
         XCTAssertTrue(SearchResponseMapper.products(from: Data("not json".utf8)).isEmpty)

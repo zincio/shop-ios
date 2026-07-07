@@ -68,6 +68,14 @@ struct ProductRow: View {
             thumbnail
             VStack(alignment: .leading, spacing: 3) {
                 Text(product.title).lineLimit(2)
+                if product.brand != nil || product.stars != nil {
+                    HStack(spacing: 6) {
+                        if let stars = product.stars { ratingView(stars) }
+                        if let brand = product.brand {
+                            Text(brand).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        }
+                    }
+                }
                 HStack(spacing: 6) {
                     Text(product.priceFormatted)
                         .font(.subheadline.bold()).foregroundStyle(.tint)
@@ -78,6 +86,18 @@ struct ProductRow: View {
             }
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder private func ratingView(_ stars: Double) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow)
+            Text(stars.formatted(.number.precision(.fractionLength(1))))
+                .font(.caption).foregroundStyle(.secondary)
+            if let n = product.numReviews {
+                Text("(\(n.formatted(.number.notation(.compactName))))")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            }
         }
     }
 

@@ -5,7 +5,18 @@ import Foundation
 /// the MPP design means no Zinc secret key is shipped at all.
 enum SecretsStore {
     private static func string(_ key: String) -> String {
-        (Bundle.main.object(forInfoDictionaryKey: key) as? String) ?? ""
+        clean((Bundle.main.object(forInfoDictionaryKey: key) as? String) ?? "")
+    }
+
+    /// xcconfig values are literal, so a value the user quoted ("zn_live_…")
+    /// keeps its quotes and breaks the request. Strip surrounding quotes and
+    /// whitespace defensively.
+    static func clean(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.count >= 2, s.hasPrefix("\""), s.hasSuffix("\"") {
+            s = String(s.dropFirst().dropLast())
+        }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static var stripePublishableKey: String { string("StripePublishableKey") }

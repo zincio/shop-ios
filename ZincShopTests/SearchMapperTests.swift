@@ -36,6 +36,32 @@ final class SearchMapperTests: XCTestCase {
         XCTAssertNotNil(p.imageURL)
     }
 
+    // Shape from Zinc's retailer-specific /products/search (product_id, no url).
+    private let productSearchSample = """
+    {
+      "status": "success",
+      "results": [
+        { "product_id": "B0123456789", "title": "Dell XPS 13 Laptop",
+          "image": "https://example.com/x.jpg", "price": 99999, "prime": true }
+      ],
+      "next_page": 2
+    }
+    """.data(using: .utf8)!
+
+    func testMapsProductIdToRetailerURL() {
+        let products = SearchResponseMapper.products(from: productSearchSample, defaultRetailer: "amazon")
+        XCTAssertEqual(products.count, 1)
+        XCTAssertEqual(products[0].url, "https://www.amazon.com/dp/B0123456789")
+        XCTAssertEqual(products[0].retailer, "amazon")
+        XCTAssertEqual(products[0].priceCents, 99999)
+        XCTAssertEqual(products[0].title, "Dell XPS 13 Laptop")
+    }
+
+    func testWalmartProductIdURL() {
+        XCTAssertEqual(SearchResponseMapper.productURL("55049252", retailer: "walmart"),
+                       "https://www.walmart.com/ip/55049252")
+    }
+
     func testEmptyOrJunkYieldsNoProducts() {
         XCTAssertTrue(SearchResponseMapper.products(from: Data("{}".utf8)).isEmpty)
         XCTAssertTrue(SearchResponseMapper.products(from: Data("not json".utf8)).isEmpty)

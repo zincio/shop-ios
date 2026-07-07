@@ -4,24 +4,42 @@ protocol ProductSearching {
     func search(_ query: String) async throws -> [Product]
 }
 
-/// Maps Zinc's cross-retailer search response
-/// (`GET /search` → `{ results: [{ url, retailer, title, image, price, … }] }`)
-/// into `Product`. Decodes defensively; items missing a url/title are skipped,
-/// and anything unmappable yields an empty list (→ fallback).
+/// Maps Zinc search responses into `Product`, handling both shapes:
+///  - cross-retailer `GET /search` and MPP `GET /agent/search`: items carry a
+///    `url` and per-item `retailer`.
+///  - retailer-specific `GET /products/search`: items carry a `product_id`
+///    (e.g. an Amazon ASIN) and no `retailer`; the URL is derived from
+///    `defaultRetailer` + `product_id`.
+/// Decodes defensively; items missing an id/title are skipped, and anything
+/// unmappable yields an empty list (→ fallback).
 enum SearchResponseMapper {
-    static func products(from data: Data) -> [Product] {
+    static func products(from data: Data, defaultRetailer: String = "amazon") -> [Product] {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let rawList = root["results"] as? [[String: Any]]
         else { return [] }
         return rawList.compactMap { item in
-            guard let url = item["url"] as? String,
-                  let title = item["title"] as? String
-            else { return nil }
+            guard let title = item["title"] as? String else { return nil }
+            let retailer = (item["retailer"] as? String) ?? defaultRetailer
+            let url: String
+            if let u = item["url"] as? String {
+                url = u
+            } else if let pid = item["product_id"] as? String {
+                url = productURL(pid, retailer: retailer)
+            } else {
+                return nil
+            }
             let cents = (item["price"] as? Int) ?? Int((item["price"] as? Double ?? 0) * 100)
             let image = (item["image"] as? String).flatMap(URL.init(string:))
-            let retailer = (item["retailer"] as? String) ?? "amazon"
             return Product(url: url, title: title, priceCents: cents,
                            imageURL: image, retailer: retailer)
+        }
+    }
+
+    /// Build an orderable product URL from a retailer product id.
+    static func productURL(_ productID: String, retailer: String) -> String {
+        switch retailer.lowercased() {
+        case "walmart": return "https://www.walmart.com/ip/\(productID)"
+        default:        return "https://www.amazon.com/dp/\(productID)"
         }
     }
 }

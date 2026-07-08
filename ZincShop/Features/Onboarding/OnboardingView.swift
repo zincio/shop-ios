@@ -78,10 +78,7 @@ struct OnboardingView: View {
     private var apiKeyStep: some View {
         Form {
             Section {
-                SecureField("zn_live_…", text: $apiKeyDraft)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.body.monospaced())
+                APIKeyField(text: $apiKeyDraft)
             } header: {
                 Text("Your Zinc API key")
             } footer: {

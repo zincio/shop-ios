@@ -39,10 +39,7 @@ struct SettingsView: View {
 
     private var apiKeySection: some View {
         Section {
-            SecureField("zn_live_…", text: $store.zincApiKey)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.body.monospaced())
+            APIKeyField(text: $store.zincApiKey)
         } header: {
             Text("Zinc API key")
         } footer: {

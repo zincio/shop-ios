@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Export options for an App Store Connect / TestFlight build. Used by:
+
+    xcodebuild -exportArchive \
+      -archivePath build/ZincShop.xcarchive \
+      -exportOptionsPlist ExportOptions.plist \
+      -exportPath build/export
+
+  Automatic signing provisions the app, the widget extension, the App Group,
+  and the Apple Pay merchant entitlement under team D436KBE6J9 — the same team
+  set in project.yml. Archive with the *released* Xcode (not the beta): App
+  Store Connect rejects builds made with a beta SDK.
+-->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>teamID</key>
+	<string>D436KBE6J9</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<!-- Upload dSYMs so App Store Connect can symbolicate crash reports. -->
+	<key>uploadSymbols</key>
+	<true/>
+	<!-- Keep the build number as set in project.yml (CURRENT_PROJECT_VERSION);
+	     don't let Xcode auto-increment it. Bump it yourself per upload. -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<!-- Produce an .ipa on disk (upload separately via Transporter/altool).
+	     Change to "upload" to have xcodebuild push straight to App Store Connect. -->
+	<key>destination</key>
+	<string>export</string>
+</dict>
+</plist>

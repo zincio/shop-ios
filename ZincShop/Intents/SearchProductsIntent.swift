@@ -18,7 +18,7 @@ import AppIntents
 /// and Apple Pay can't present from a background intent anyway (see
 /// `BuyProductIntent`).
 @available(iOS 18.2, *)
-@AssistantIntent(schema: .system.search)
+@AppIntent(schema: .system.search)
 struct SearchProductsIntent {
     static let searchScopes: [StringSearchScope] = [.general]
 

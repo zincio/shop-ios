@@ -31,7 +31,7 @@ final class OrderCoordinator {
         let body = OrderRequestBody(product: product, quantity: quantity, shipping: shipping,
                                     maxPriceCents: effectiveMax, idempotencyKey: UUID().uuidString)
 
-        if !SecretsStore.zincApiKey.isEmpty {
+        if !ZincCredentials.apiKey.isEmpty {
             return try await keyedOrder(body: body, product: product)
         } else {
             return try await mppOrder(body: body, product: product, maxPriceCents: effectiveMax)

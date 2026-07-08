@@ -25,6 +25,10 @@ final class ProfileStore: ObservableObject {
     @Published var recentSearches: [String] {
         didSet { defaults.set(recentSearches, forKey: "recentSearches") }
     }
+    /// The user's own Zinc API key. Mirrored to the Keychain (not the UserDefaults
+    /// blob) since it's a live credential; an empty value means "fall back to the
+    /// bundled dev key" (see `ZincCredentials`).
+    @Published var zincApiKey: String { didSet { ZincCredentials.setUserApiKey(zincApiKey) } }
     @Published var pendingPurchase: PendingPurchase? {
         didSet {
             // Remove the key when nil instead of persisting `null` (which would
@@ -48,6 +52,7 @@ final class ProfileStore: ObservableObject {
         self.priceCapCents = cap == 0 ? 5000 : cap   // default $50 cap
         self.devMode = defaults.bool(forKey: "devMode")
         self.recentSearches = defaults.stringArray(forKey: "recentSearches") ?? []
+        self.zincApiKey = ZincCredentials.userApiKey
         self.pendingPurchase = Self.load(PendingPurchase.self, "pending", defaults)
     }
 

@@ -42,7 +42,7 @@ struct ZincClient {
     ///    key but a `payment` closure is supplied to satisfy the challenge.
     /// 3. Built-in demo catalog otherwise / on any failure.
     func search(_ query: String, payment: SearchPayment? = nil) async throws -> [Product] {
-        if !SecretsStore.zincApiKey.isEmpty {
+        if !ZincCredentials.apiKey.isEmpty {
             if let live = try? await keyedSearch(query), !live.isEmpty { return live }
         } else if let payment {
             if let live = try? await mppSearch(query, payment: payment), !live.isEmpty { return live }
@@ -56,7 +56,7 @@ struct ZincClient {
         guard let url = searchURL("search", query) else { return [] }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
-        req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(ZincCredentials.apiKey)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await session.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return [] }
         return SearchResponseMapper.products(from: data)
@@ -102,7 +102,7 @@ struct ZincClient {
         req.httpMethod = "POST"
         req.timeoutInterval = 30
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(ZincCredentials.apiKey)", forHTTPHeaderField: "Authorization")
         req.httpBody = try Self.encoder.encode(body)
         do {
             let (data, resp) = try await session.data(for: req)
@@ -172,8 +172,8 @@ struct ZincClient {
     func getOrder(id: String, apiKey: String?) async throws -> AgentOrderDTO {
         var req = URLRequest(url: baseURL.appendingPathComponent("orders/\(id)"))
         req.timeoutInterval = 20
-        if !SecretsStore.zincApiKey.isEmpty {
-            req.setValue("Bearer \(SecretsStore.zincApiKey)", forHTTPHeaderField: "Authorization")
+        if !ZincCredentials.apiKey.isEmpty {
+            req.setValue("Bearer \(ZincCredentials.apiKey)", forHTTPHeaderField: "Authorization")
         } else if let apiKey {
             req.setValue(apiKey, forHTTPHeaderField: "X-Api-Key")
         }

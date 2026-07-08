@@ -15,7 +15,7 @@ struct PurchaseFlowView: View {
     @State private var phase: Phase = .ready
 
     private let coordinator = OrderCoordinator()
-    private var keyed: Bool { !SecretsStore.zincApiKey.isEmpty }
+    private var keyed: Bool { !ZincCredentials.apiKey.isEmpty }
 
     enum Phase: Equatable {
         case ready, paying, success(OrderRecord), failure(String)

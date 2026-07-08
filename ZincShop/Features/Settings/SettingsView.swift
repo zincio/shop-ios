@@ -9,6 +9,7 @@ struct SettingsView: View {
             Form {
                 guardrailSection
                 shippingSection
+                apiKeySection
                 siriSection
                 developerSection
                 onboardingSection
@@ -33,6 +34,21 @@ struct SettingsView: View {
     private var shippingSection: some View {
         Section("Shipping") {
             NavigationLink("Edit shipping address") { ShippingSetupView() }
+        }
+    }
+
+    private var apiKeySection: some View {
+        Section {
+            SecureField("zn_live_…", text: $store.zincApiKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.body.monospaced())
+        } header: {
+            Text("Zinc API key")
+        } footer: {
+            Text(store.zincApiKey.isEmpty
+                 ? "No key set — using the bundled development key. Add your own to place orders on your account."
+                 : "Using your key. Clear the field to fall back to the bundled development key.")
         }
     }
 

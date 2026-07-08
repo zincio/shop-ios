@@ -32,7 +32,9 @@ Notes:
 
 ## Secrets & configuration
 
-`Config/Secrets.xcconfig` (gitignored) → Info.plist `$(VAR)` → `SecretsStore`. Keys: `ZINC_API_KEY`, `STRIPE_PUBLISHABLE_KEY`, `APPLE_PAY_MERCHANT_ID`, `ZINC_BASE_URL`. **The presence of `ZINC_API_KEY` flips the app between keyed and MPP paths** (see below).
+`Config/Secrets.xcconfig` (gitignored) → Info.plist `$(VAR)` → `SecretsStore`. Keys: `ZINC_API_KEY`, `STRIPE_PUBLISHABLE_KEY`, `APPLE_PAY_MERCHANT_ID`, `ZINC_BASE_URL`. **The presence of a resolved Zinc API key flips the app between keyed and MPP paths** (see below).
+
+**Zinc key resolution (`ZincCredentials`, not `SecretsStore`, for the key):** all request sites read `ZincCredentials.apiKey`, which prefers the **user's own key** (entered in onboarding / Settings, stored in the **Keychain**) and falls back to the build-time `ZINC_API_KEY` from `Secrets.xcconfig` as a dev convenience. `ProfileStore.zincApiKey` mirrors the Keychain value for UI binding (empty ⇒ using the bundled dev key). `SecretsStore.zincApiKey` is now only the raw build value — don't read it directly for requests.
 
 xcconfig gotchas (handled but easy to reintroduce): values are literal — **no quotes**, and `//` starts a comment so escape URLs as `https:/$()/api.zinc.com`. `SecretsStore.clean()` defensively strips stray surrounding quotes/whitespace.
 

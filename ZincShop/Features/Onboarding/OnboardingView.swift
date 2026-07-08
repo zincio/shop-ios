@@ -9,8 +9,9 @@ struct OnboardingView: View {
 
     @State private var step: Step = .welcome
     @State private var draft = ShippingProfile()
+    @State private var apiKeyDraft = ""
 
-    enum Step: Int, CaseIterable { case welcome, shipping, siri }
+    enum Step: Int, CaseIterable { case welcome, shipping, apiKey, siri }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +26,12 @@ struct OnboardingView: View {
             footer
         }
         .animation(.snappy, value: step)
-        .onAppear { draft = store.shipping }
+        .onAppear {
+            draft = store.shipping
+            // Prefill with the effective key: the user's if set, otherwise the
+            // bundled dev key from Secrets so it Just Works in development.
+            apiKeyDraft = ZincCredentials.apiKey
+        }
     }
 
     // MARK: Steps
@@ -34,6 +40,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome: welcomeStep
         case .shipping: shippingStep
+        case .apiKey: apiKeyStep
         case .siri: siriStep
         }
     }
@@ -64,6 +71,21 @@ struct OnboardingView: View {
                 Text("Where should we ship?")
             } footer: {
                 Text("Used for every order. You can change it later in Settings.")
+            }
+        }
+    }
+
+    private var apiKeyStep: some View {
+        Form {
+            Section {
+                SecureField("zn_live_…", text: $apiKeyDraft)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.body.monospaced())
+            } header: {
+                Text("Your Zinc API key")
+            } footer: {
+                Text("Used to search and place your orders. Get one at zinc.com. You can change or clear it later in Settings.")
             }
         }
     }
@@ -126,6 +148,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome: "Get Started"
         case .shipping: "Continue"
+        case .apiKey: "Continue"
         case .siri: "Start Shopping"
         }
     }
@@ -136,6 +159,13 @@ struct OnboardingView: View {
             step = .shipping
         case .shipping:
             store.shipping = draft
+            step = .apiKey
+        case .apiKey:
+            // Only persist a key the user actually changed from the bundled dev
+            // default; leaving the default untouched keeps the Keychain empty so
+            // the resolver's dev fallback applies.
+            store.zincApiKey = apiKeyDraft == ZincCredentials.apiKey ? store.zincApiKey
+                                                                     : apiKeyDraft
             step = .siri
         case .siri:
             store.hasOnboarded = true

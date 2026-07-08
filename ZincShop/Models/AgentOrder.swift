@@ -89,4 +89,14 @@ struct OrderRecord: Codable, Identifiable, Hashable {
             return true
         }
     }
+
+    /// Terminal *non-success*: the order won't be fulfilled (a `job_result` error,
+    /// or a failed/cancelled server status). Drives the failed Live Activity look.
+    var isFailed: Bool {
+        if jobResultError != nil { return true }
+        switch status.lowercased() {
+        case "failed", "error", "cancelled", "canceled": return true
+        default: return false
+        }
+    }
 }

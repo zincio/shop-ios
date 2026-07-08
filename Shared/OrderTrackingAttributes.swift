@@ -15,6 +15,9 @@ struct OrderTrackingAttributes: ActivityAttributes {
         /// True once the product thumbnail has been cached to the shared container.
         /// Flipping this drives a re-render so the widget picks up the image.
         var hasImage: Bool = false
+        /// Terminal failure — the widget shows a full red bar instead of a
+        /// half-filled one stuck at the last known step.
+        var isFailed: Bool = false
     }
 
     /// Static info that doesn't change for the life of the activity.

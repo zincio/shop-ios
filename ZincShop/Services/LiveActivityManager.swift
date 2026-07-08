@@ -74,7 +74,11 @@ enum LiveActivityManager {
 
     private static func contentState(for order: OrderRecord) -> OrderTrackingAttributes.ContentState {
         let tracking = order.trackingNumbers.first
+        let failed = order.isFailed
         let progress: Double = {
+            // A failed order is terminal: fill the bar (rendered red) rather than
+            // leaving it stuck at the last in-progress step.
+            if failed { return 1.0 }
             switch order.status.lowercased() {
             case "pending", "placing": return 0.25
             case "placed", "processing": return 0.5
@@ -84,6 +88,6 @@ enum LiveActivityManager {
             }
         }()
         return .init(status: order.statusDisplay, trackingNumber: tracking, progress: progress,
-                     hasImage: SharedImageStore.hasImage(orderID: order.id))
+                     hasImage: SharedImageStore.hasImage(orderID: order.id), isFailed: failed)
     }
 }

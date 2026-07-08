@@ -12,9 +12,11 @@ struct OrderTrackingLiveActivity: Widget {
                     OrderThumbnail(orderID: context.attributes.orderId, size: 32)
                     Text(context.attributes.productTitle).font(.headline).lineLimit(1)
                     Spacer()
-                    Text(context.state.status).font(.caption).foregroundStyle(.secondary)
+                    Text(context.state.status).font(.caption)
+                        .foregroundStyle(context.state.isFailed ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
                 }
                 ProgressView(value: context.state.progress)
+                    .tint(context.state.isFailed ? .red : nil)
                 if let tracking = context.state.trackingNumber {
                     Text("Tracking: \(tracking)").font(.caption2).foregroundStyle(.secondary)
                 }
@@ -32,11 +34,13 @@ struct OrderTrackingLiveActivity: Widget {
                     ProgressView(value: context.state.progress) {
                         Text(context.state.status).font(.caption2)
                     }
+                    .tint(context.state.isFailed ? .red : nil)
                 }
             } compactLeading: {
                 OrderThumbnail(orderID: context.attributes.orderId, size: 20)
             } compactTrailing: {
                 Text(context.state.status).font(.caption2).lineLimit(1)
+                    .foregroundStyle(context.state.isFailed ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
             } minimal: {
                 OrderThumbnail(orderID: context.attributes.orderId, size: 20)
             }

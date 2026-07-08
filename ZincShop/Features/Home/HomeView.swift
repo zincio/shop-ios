@@ -8,11 +8,21 @@ enum SortOption: String, CaseIterable, Identifiable {
     case relevance = "Relevance"
 
     var id: String { rawValue }
+
+    /// Compact label for the chip row (the full `rawValue` is verbose there).
+    var chipTitle: String {
+        switch self {
+        case .priceLowToHigh: return "Lowest Price"
+        case .priceHighToLow: return "Highest Price"
+        case .relevance:      return "Relevance"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .priceLowToHigh: return "arrow.up"
         case .priceHighToLow: return "arrow.down"
-        case .relevance: return "sparkles"
+        case .relevance:      return "sparkles"
         }
     }
 }
@@ -58,10 +68,11 @@ struct HomeView: View {
                         prompt: "What do you need?")
             .onSubmit(of: .search) { Task { await runSearch() } }
             .overlay { if isSearching { ProgressView() } }
-            .toolbar {
-                if !results.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) { sortMenu }
-                }
+            // Persistent filter/sort row pinned just below the search bar. Kept as
+            // its own scrollable chip bar so more filters (retailer, rating,
+            // Prime, etc.) can be added alongside sort later.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if !results.isEmpty { filterBar }
             }
             .sheet(item: $selectedProduct) { product in
                 PurchaseFlowView(product: product, quantity: 1, onOrdered: clearSearch)
@@ -69,16 +80,35 @@ struct HomeView: View {
         }
     }
 
-    private var sortMenu: some View {
-        Menu {
-            Picker("Sort", selection: $sortOption) {
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
                 ForEach(SortOption.allCases) { option in
-                    Label(option.rawValue, systemImage: option.systemImage).tag(option)
+                    sortChip(option)
                 }
             }
-        } label: {
-            Label("Sort", systemImage: "arrow.up.arrow.down")
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func sortChip(_ option: SortOption) -> some View {
+        let selected = option == sortOption
+        return Button {
+            sortOption = option
+        } label: {
+            Label(option.chipTitle, systemImage: option.systemImage)
+                .font(.subheadline.weight(selected ? .semibold : .regular))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(selected ? AnyShapeStyle(.tint) : AnyShapeStyle(.fill.secondary),
+                            in: Capsule())
+                .foregroundStyle(selected ? Color.white : .primary)
+        }
+        .buttonStyle(.plain)
+        .animation(.snappy(duration: 0.15), value: selected)
     }
 
     @ViewBuilder private var emptyState: some View {

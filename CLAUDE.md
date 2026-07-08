@@ -44,13 +44,13 @@ Three targets: **ZincShop** (app), **ZincShopWidget** (Live Activity UI), **Zinc
 
 Layered by folder: `Models/` (Codable DTOs + domain), `Services/` (networking, coordinators, persistence), `Intents/` (Siri/App Shortcuts), `Features/` (SwiftUI screens), `App/` (entry + root gating).
 
-### Two-tier "keyed vs MPP" pattern (the core design)
-Both **search** and **ordering** prefer an API-key path and fall back to Zinc's keyless MPP (Machine Payments Protocol, HTTP 402 + Apple Pay) path:
+### Keyed + MPP ordering (the core design)
+**Ordering** prefers an API-key path and falls back to Zinc's keyless MPP (Machine Payments Protocol, HTTP 402 + Apple Pay) path. **Search is keyed-only** (no MPP):
 
-- **Search** — `ZincClient.search(_:payment:)`: keyed `GET /search` (Bearer) → MPP `GET /agent/search` ($0.01/call, pays the 402 with Apple Pay via an injected closure) → `MockCatalog` demo fallback. `SearchResponseMapper` maps both response shapes (`url`+`retailer`, or `/products/search`'s `product_id` → an orderable URL).
+- **Search** — `ZincClient.search(_:)`: keyed `GET /search` (Bearer) → `MockCatalog` demo fallback. `SearchResponseMapper` maps both response shapes (`url`+`retailer`, or `/products/search`'s `product_id` → an orderable URL). (The old metered MPP `GET /agent/search` path was removed.)
 - **Ordering** — `OrderCoordinator.purchase(...)`: keyed `POST /orders` (Bearer, wallet-funded, Face ID guard via `BiometricAuth`) → MPP `POST /agent/orders` (402 → Apple Pay). `MPP` credential creation is stubbed in `StripeMPPAdapter` (the one piece not exercisable offline). **Dev mode** (`ProfileStore.devMode`) sends `max_price = 0` so orders never finalize — safe testing; it also skips the price-cap guard.
 
-`ZincClient` holds no secret beyond what `SecretsStore` provides and is UI-agnostic (Apple Pay is injected as a closure). Status polling: keyed orders use the Bearer key, MPP orders use the per-order `X-Api-Key` returned on creation.
+`ZincClient` holds no secret beyond what `SecretsStore`/`ZincCredentials` provide and is UI-agnostic (Apple Pay is injected as a closure for the order path). Status polling: keyed orders use the Bearer key, MPP orders use the per-order `X-Api-Key` returned on creation.
 
 ### Siri / App Intents flow
 `ZincShopShortcuts` (`AppShortcutsProvider`) exposes `BuyProductIntent`. Product is a **`ProductEntity`** (`AppEntity`) resolved by **`ProductEntityQuery`** (`EntityStringQuery`, backed by `ZincClient.search`) so Siri parses arbitrary products inline. `BuyProductIntent` is a `ForegroundContinuableIntent`: it stays headless for search + confirmation snippet, then sets `ProfileStore.pendingPurchase` and calls `requestToContinueInForeground()`; `RootView` observes `pendingPurchase` and presents `PurchaseFlowView` for payment. Apple Pay can't present from a background intent — that's why the app foregrounds.

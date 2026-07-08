@@ -28,24 +28,15 @@ struct ZincClient {
 
     // MARK: Search
 
-    /// Satisfies a `402` search challenge and returns the MPP credential to
-    /// retry with. Provided by the foreground caller (Apple Pay); omit it and
-    /// the metered MPP search is skipped.
-    typealias SearchPayment = (_ challenges: [PaymentChallenge]) async throws -> String
-
     /// Search priority:
-    /// 1. Keyed cross-retailer search (`GET /search`, Bearer) when `ZINC_API_KEY`
-    ///    is set — no per-call charge. Chosen over `/products/search` because it
-    ///    returns star ratings and many more results (the retailer-specific
-    ///    endpoint returns null stars and only a handful of items).
-    /// 2. MPP agent search (`GET /agent/search`, $0.01 per call via 402) when no
-    ///    key but a `payment` closure is supplied to satisfy the challenge.
-    /// 3. Built-in demo catalog otherwise / on any failure.
-    func search(_ query: String, payment: SearchPayment? = nil) async throws -> [Product] {
+    /// 1. Keyed cross-retailer search (`GET /search`, Bearer) when a Zinc API key
+    ///    is set. Chosen over `/products/search` because it returns star ratings
+    ///    and many more results (the retailer-specific endpoint returns null stars
+    ///    and only a handful of items).
+    /// 2. Built-in demo catalog otherwise / on any failure.
+    func search(_ query: String) async throws -> [Product] {
         if !ZincCredentials.apiKey.isEmpty {
             if let live = try? await keyedSearch(query), !live.isEmpty { return live }
-        } else if let payment {
-            if let live = try? await mppSearch(query, payment: payment), !live.isEmpty { return live }
         }
         return try await searchFallback.search(query)
     }
@@ -59,28 +50,6 @@ struct ZincClient {
         req.setValue("Bearer \(ZincCredentials.apiKey)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await session.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return [] }
-        return SearchResponseMapper.products(from: data)
-    }
-
-    /// MPP agent search: `GET /agent/search?q=…`. No key; pays the 402 challenge
-    /// ($0.01) via the injected `payment` closure, then retries.
-    private func mppSearch(_ query: String, payment: SearchPayment) async throws -> [Product] {
-        guard let url = searchURL("agent/search", query) else { return [] }
-        func get(_ credential: String?) async throws -> (HTTPURLResponse, Data) {
-            var req = URLRequest(url: url)
-            req.timeoutInterval = 20
-            if let credential { req.setValue(credential, forHTTPHeaderField: "Authorization") }
-            let (data, resp) = try await session.data(for: req)
-            guard let http = resp as? HTTPURLResponse else { throw ZincError.transport("non-HTTP response") }
-            return (http, data)
-        }
-
-        var (resp, data) = try await get(nil)
-        if resp.statusCode == 402 {
-            let credential = try await payment(PaymentChallenge.parseAll(from: resp))
-            (resp, data) = try await get(credential)
-        }
-        guard resp.statusCode == 200 else { return [] }
         return SearchResponseMapper.products(from: data)
     }
 

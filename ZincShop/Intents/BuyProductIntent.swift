@@ -15,7 +15,7 @@ import SwiftUI
 /// user confirms, then request the foreground transition explicitly.
 struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Order a Product"
-    static let description = IntentDescription("Search a retailer and order the top match.")
+    static let description = IntentDescription("Search Zinc for a product and order the top match.")
 
     // An AppEntity (not a free-form String) so Siri can parse ANY product inline
     // in a phrase like "Order AA batteries on Zinc". Siri resolves the words via
@@ -59,3 +59,4 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
         return .result(dialog: "Finish your purchase in Zinc.")
     }
 }
+

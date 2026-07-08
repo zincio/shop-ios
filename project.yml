@@ -32,6 +32,25 @@ schemes:
       config: Debug
       targets:
         - ZincShopTests
+        # ZincShopUITests (the AppIntentsTesting end-to-end intent tests) is NOT in
+        # this default scheme on purpose: it only compiles under Xcode 27 (iOS 27
+        # SDK). Keeping it out lets the standard `xcodebuild test -scheme ZincShop`
+        # keep working under the stable Xcode. Run the intent tests via the
+        # dedicated `ZincShopIntentTests` scheme under Xcode 27 (see below).
+
+  # Xcode 27-only scheme for the AppIntentsTesting end-to-end intent tests. Run in
+  # Xcode 27 (Product ▸ Test) or headless on a real device — these pass only under
+  # real development signing; the simulator's ad-hoc signing is rejected by
+  # AppIntentsServices (errors 803/800). See ZincShopUITests/BuyProductIntentUITests.swift.
+  ZincShopIntentTests:
+    build:
+      targets:
+        ZincShop: all
+        ZincShopUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - ZincShopUITests
 
 settings:
   base:
@@ -90,3 +109,23 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.zinc.zincshop.tests
         GENERATE_INFOPLIST_FILE: "YES"
+
+  # UI-test bundle hosting the AppIntentsTesting end-to-end intent tests. It does
+  # NOT compile app sources — it talks to the running app out-of-process, the same
+  # way Siri/Shortcuts do, referencing types by string name.
+  ZincShopUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ZincShopUITests
+    dependencies:
+      - target: ZincShop
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.zinc.zincshop.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: ZincShop
+        # AppIntentsTesting's IntentDefinitions API requires iOS 27 (Xcode 27 SDK);
+        # the app itself still targets iOS 18, so raise the floor for just this
+        # test bundle.
+        IPHONEOS_DEPLOYMENT_TARGET: "27.0"

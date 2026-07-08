@@ -7,8 +7,12 @@ import AppIntents
 /// live Zinc search is enabled, or `MockCatalog` in this prototype.
 struct ProductEntityQuery: EntityStringQuery {
     /// Resolve arbitrary spoken/typed text (the App Shortcut parameter path).
+    /// Sorted cheapest-first (matching the Shop tab's default) so the Shortcuts
+    /// picker lists the best-value options up top and `BuyProductIntent` orders
+    /// the lowest-priced match when it takes `.first`.
     func entities(matching string: String) async throws -> [ProductEntity] {
         let products = try await ZincClient().search(string)
+            .sorted { $0.priceCents < $1.priceCents }
         await ProductEntityCache.shared.store(products)
         return products.map(ProductEntity.init)
     }

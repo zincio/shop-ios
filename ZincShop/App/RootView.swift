@@ -9,17 +9,25 @@ struct RootView: View {
     /// relaunches the app). `.sheet(isPresented:)` with an already-true value at
     /// first render often fails to present.
     @State private var activePurchase: PendingPurchase?
+    /// Which tab is showing. Bound so a Siri search (`SearchProductsIntent`) can
+    /// bring the Shop tab forward before `HomeView` runs the query.
+    @State private var selectedTab: Tab = .shop
+
+    enum Tab: Hashable { case shop, orders, settings }
 
     var body: some View {
         Group {
             if store.hasOnboarded {
-                TabView {
+                TabView(selection: $selectedTab) {
                     HomeView()
                         .tabItem { Label("Shop", systemImage: "cart") }
+                        .tag(Tab.shop)
                     OrderListView()
                         .tabItem { Label("Orders", systemImage: "shippingbox") }
+                        .tag(Tab.orders)
                     SettingsView()
                         .tabItem { Label("Settings", systemImage: "gearshape") }
+                        .tag(Tab.settings)
                 }
             } else {
                 OnboardingView()
@@ -32,6 +40,7 @@ struct RootView: View {
         }
         .task {
             syncPendingPurchase()
+            focusShopForPendingSearch()
             await refreshLiveActivities()
         }
         .onChange(of: scenePhase) { _, phase in
@@ -40,11 +49,18 @@ struct RootView: View {
             if phase == .active { Task { await refreshLiveActivities() } }
         }
         .onChange(of: store.pendingPurchase) { _, _ in syncPendingPurchase() }
+        .onChange(of: store.pendingSearch) { _, _ in focusShopForPendingSearch() }
     }
 
     private func refreshLiveActivities() async {
         await LiveActivityManager.reattach(to: store.orders)
         OrderTracker.shared.resumeAll()
+    }
+
+    private func focusShopForPendingSearch() {
+        // Bring the Shop tab forward so HomeView can consume the query; HomeView
+        // clears `pendingSearch` once it runs the search.
+        if store.pendingSearch != nil { selectedTab = .shop }
     }
 
     private func syncPendingPurchase() {

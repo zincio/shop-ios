@@ -78,6 +78,19 @@ struct HomeView: View {
                 PurchaseFlowView(product: product, quantity: 1, onOrdered: clearSearch)
             }
         }
+        // A Siri/Apple Intelligence search (SearchProductsIntent) lands here.
+        .task { consumePendingSearch() }
+        .onChange(of: store.pendingSearch) { _, _ in consumePendingSearch() }
+    }
+
+    /// Run a search term handed over by the Siri search intent, then clear it so
+    /// it fires exactly once.
+    private func consumePendingSearch() {
+        guard let term = store.pendingSearch?.trimmingCharacters(in: .whitespaces),
+              !term.isEmpty else { return }
+        store.pendingSearch = nil
+        query = term
+        Task { await runSearch() }
     }
 
     private var filterBar: some View {

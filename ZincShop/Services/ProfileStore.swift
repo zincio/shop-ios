@@ -29,6 +29,10 @@ final class ProfileStore: ObservableObject {
     /// blob) since it's a live credential; an empty value means "fall back to the
     /// bundled dev key" (see `ZincCredentials`).
     @Published var zincApiKey: String { didSet { ZincCredentials.setUserApiKey(zincApiKey) } }
+    /// A product search requested via Siri / Apple Intelligence (the
+    /// `.system.search` assistant schema, `SearchProductsIntent`). Transient — set
+    /// by the intent, consumed once by `HomeView`, never persisted.
+    @Published var pendingSearch: String?
     @Published var pendingPurchase: PendingPurchase? {
         didSet {
             // Remove the key when nil instead of persisting `null` (which would
@@ -53,6 +57,7 @@ final class ProfileStore: ObservableObject {
         self.devMode = defaults.bool(forKey: "devMode")
         self.recentSearches = defaults.stringArray(forKey: "recentSearches") ?? []
         self.zincApiKey = ZincCredentials.userApiKey
+        self.pendingSearch = nil
         self.pendingPurchase = Self.load(PendingPurchase.self, "pending", defaults)
     }
 

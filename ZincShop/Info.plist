@@ -37,6 +37,8 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Zinc uses Face ID through Apple Pay to confirm your purchases.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>StripePublishableKey</key>

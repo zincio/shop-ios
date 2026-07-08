@@ -89,6 +89,10 @@ struct HomeView: View {
         guard let term = store.pendingSearch?.trimmingCharacters(in: .whitespaces),
               !term.isEmpty else { return }
         store.pendingSearch = nil
+        // Clear any prior results so the incoming Siri search starts from a blank
+        // table rather than briefly showing the last query's rows.
+        results = []
+        errorText = nil
         query = term
         Task { await runSearch() }
     }

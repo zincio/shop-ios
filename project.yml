@@ -56,7 +56,7 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "2"
     # Real Team ID + automatic signing so the app installs on a physical device
     # (and simulator). Automatic signing provisions the app, the widget, the
     # App Intents, and the Apple Pay merchant entitlement under this team.

@@ -23,4 +23,12 @@ final class SemanticQueryBuilderTests: XCTestCase {
         let q = await SemanticQueryBuilder.query(labels: [], classify: { [] })
         XCTAssertNil(q)
     }
+
+    func testFallsBackToClassifierWhenNoLabels() async {
+        let q = await SemanticQueryBuilder.query(
+            labels: [],
+            classify: { ["mug", "cup"] }
+        )
+        XCTAssertEqual(q, "mug cup")
+    }
 }

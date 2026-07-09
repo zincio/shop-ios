@@ -46,6 +46,7 @@ struct OrderDetailView: View {
             }
         }
         .listStyle(.grouped)
+        .refreshable { await refresh() }
         .navigationTitle("Order")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

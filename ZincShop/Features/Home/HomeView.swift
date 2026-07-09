@@ -35,6 +35,10 @@ struct HomeView: View {
     @State private var errorText: String?
     @State private var selectedProduct: Product?
     @State private var sortOption: SortOption = .priceLowToHigh
+    /// The query whose (possibly empty) results are currently on screen, set once a
+    /// search completes successfully. Lets the empty state say "No results for X"
+    /// instead of falling back to the blank-slate prompt.
+    @State private var lastSearchedQuery: String?
 
     private let zinc = ZincClient()
 
@@ -52,7 +56,7 @@ struct HomeView: View {
         NavigationStack {
             List {
                 if let errorText {
-                    Text(errorText).foregroundStyle(.red)
+                    searchErrorView(errorText)
                 }
                 ForEach(sortedResults) { product in
                     Button { selectedProduct = product } label: {
@@ -60,7 +64,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                if results.isEmpty && !isSearching { emptyState }
+                if results.isEmpty && !isSearching && errorText == nil { emptyState }
             }
             .navigationTitle("Zinc")
             .searchable(text: $query,
@@ -93,6 +97,7 @@ struct HomeView: View {
         // table rather than briefly showing the last query's rows.
         results = []
         errorText = nil
+        lastSearchedQuery = nil
         query = term
         Task { await runSearch() }
     }
@@ -129,7 +134,13 @@ struct HomeView: View {
     }
 
     @ViewBuilder private var emptyState: some View {
-        if store.recentSearches.isEmpty {
+        if let lastSearchedQuery {
+            ContentUnavailableView(
+                "No results for “\(lastSearchedQuery)”",
+                systemImage: "magnifyingglass",
+                description: Text("Try a different search term.")
+            )
+        } else if store.recentSearches.isEmpty {
             ContentUnavailableView(
                 "Search to shop",
                 systemImage: "magnifyingglass",
@@ -151,18 +162,43 @@ struct HomeView: View {
         }
     }
 
+    /// Error card shown in place of results when a search throws, with a Retry
+    /// button that re-runs the current query.
+    private func searchErrorView(_ message: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.orange)
+            Text("Search failed").font(.headline)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button { Task { await runSearch() } } label: {
+                Label("Retry", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical)
+        .listRowSeparator(.hidden)
+    }
+
     private func clearSearch() {
         query = ""
         results = []
         errorText = nil
+        lastSearchedQuery = nil
     }
 
     private func runSearch() async {
-        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let term = query.trimmingCharacters(in: .whitespaces)
+        guard !term.isEmpty else { return }
         isSearching = true; errorText = nil
         defer { isSearching = false }
         do {
             results = try await zinc.search(query)
+            lastSearchedQuery = term
             store.addRecentSearch(query)
         } catch {
             errorText = error.localizedDescription

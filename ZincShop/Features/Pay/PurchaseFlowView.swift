@@ -18,7 +18,7 @@ struct PurchaseFlowView: View {
     private var keyed: Bool { !ZincCredentials.apiKey.isEmpty }
 
     enum Phase: Equatable {
-        case ready, paying, success(OrderRecord), failure(String)
+        case ready, paying, success(OrderRecord), failure(PurchaseFailure)
     }
 
     var body: some View {
@@ -72,13 +72,28 @@ struct PurchaseFlowView: View {
                     .font(.footnote).foregroundStyle(.secondary)
                 Button("Done") { dismiss() }.buttonStyle(.bordered)
             }
-        case .failure(let message):
+        case .failure(let failure):
             VStack(spacing: 12) {
                 Image(systemName: "xmark.octagon.fill")
                     .font(.largeTitle).foregroundStyle(.red)
-                Text(message).multilineTextAlignment(.center)
-                Button("Try Again") { phase = .ready }.buttonStyle(.bordered)
+                Text(failure.title).font(.headline)
+                Text(failure.message)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                failureAction(failure.recovery)
             }
+        }
+    }
+
+    /// The recovery button for a failure, chosen by how the error can be resolved.
+    @ViewBuilder private func failureAction(_ recovery: PurchaseFailure.Recovery) -> some View {
+        switch recovery {
+        case .retry:
+            Button("Try Again") { phase = .ready }.buttonStyle(.borderedProminent)
+        case .adjustCap:
+            Button("Close") { dismiss() }.buttonStyle(.bordered)
+        case .dismiss:
+            Button("Close") { dismiss() }.buttonStyle(.bordered)
         }
     }
 
@@ -101,7 +116,7 @@ struct PurchaseFlowView: View {
             onOrdered?()
             phase = .success(order)
         } catch {
-            phase = .failure(error.localizedDescription)
+            phase = .failure(PurchaseFailure(error))
         }
     }
 }

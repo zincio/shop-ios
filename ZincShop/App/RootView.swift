@@ -45,10 +45,18 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             // Re-adopt/refresh activities and restart any dead pollers whenever
-            // the app returns to the foreground (.task covers cold launch).
-            if phase == .active { Task { await refreshLiveActivities() } }
+            // the app returns to the foreground (.task covers cold launch). Also
+            // re-check for a purchase that arrived while backgrounded.
+            if phase == .active {
+                syncPendingPurchase()
+                Task { await refreshLiveActivities() }
+            }
         }
         .onChange(of: store.pendingPurchase) { _, _ in syncPendingPurchase() }
+        // A Siri purchase requested mid-onboarding is held back until setup
+        // finishes (below); surface it the moment onboarding completes so it's
+        // never silently dropped.
+        .onChange(of: store.hasOnboarded) { _, done in if done { syncPendingPurchase() } }
         .onChange(of: store.pendingSearch) { _, _ in focusShopForPendingSearch() }
     }
 

@@ -27,11 +27,15 @@ struct OnboardingView: View {
         }
         .animation(.snappy, value: step)
         .onAppear {
-            draft = store.shipping
+            // Restore a form the user started before backgrounding; otherwise
+            // seed from any saved shipping profile.
+            draft = store.onboardingDraft ?? store.shipping
             // Prefill with the effective key: the user's if set, otherwise the
             // bundled dev key from Secrets so it Just Works in development.
             apiKeyDraft = ZincCredentials.apiKey
         }
+        // Persist each edit so a mid-onboarding interruption doesn't lose input.
+        .onChange(of: draft) { _, newValue in store.onboardingDraft = newValue }
     }
 
     // MARK: Steps
@@ -166,6 +170,7 @@ struct OnboardingView: View {
             step = .siri
         case .siri:
             store.hasOnboarded = true
+            store.onboardingDraft = nil   // setup done — drop the saved draft
         }
     }
 }

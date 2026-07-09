@@ -7,23 +7,35 @@ struct ShippingFields: View {
 
     var body: some View {
         Group {
-            TextField("First name", text: $profile.firstName)
-                .textContentType(.givenName)
-            TextField("Last name", text: $profile.lastName)
-                .textContentType(.familyName)
-            TextField("Address line 1", text: $profile.addressLine1)
-                .textContentType(.fullStreetAddress)
+            required("First name", $profile.firstName, content: .givenName)
+            required("Last name", $profile.lastName, content: .familyName)
+            required("Address line 1", $profile.addressLine1, content: .fullStreetAddress)
             TextField("Address line 2 (optional)", text: $profile.addressLine2)
-            TextField("City", text: $profile.city)
-                .textContentType(.addressCity)
+            required("City", $profile.city, content: .addressCity)
             TextField("State", text: $profile.state)
                 .textContentType(.addressState)
-            TextField("ZIP", text: $profile.postalCode)
-                .textContentType(.postalCode)
-                .keyboardType(.numbersAndPunctuation)
-            TextField("Phone", text: $profile.phoneNumber)
-                .textContentType(.telephoneNumber)
-                .keyboardType(.phonePad)
+            required("ZIP", $profile.postalCode, content: .postalCode,
+                     keyboard: .numbersAndPunctuation)
+            required("Phone", $profile.phoneNumber, content: .telephoneNumber,
+                     keyboard: .phonePad)
+        }
+    }
+
+    /// A required field (one of `ShippingProfile.isComplete`'s), with a red
+    /// asterisk shown until it's filled so gaps are visible before advancing.
+    private func required(_ title: String, _ text: Binding<String>,
+                          content: UITextContentType,
+                          keyboard: UIKeyboardType = .default) -> some View {
+        HStack(spacing: 6) {
+            TextField(title, text: text)
+                .textContentType(content)
+                .keyboardType(keyboard)
+            if text.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("*")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(.red)
+                    .accessibilityLabel("Required")
+            }
         }
     }
 }

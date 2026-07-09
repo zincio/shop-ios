@@ -33,6 +33,18 @@ final class ProfileStore: ObservableObject {
     /// `.system.search` assistant schema, `SearchProductsIntent`). Transient — set
     /// by the intent, consumed once by `HomeView`, never persisted.
     @Published var pendingSearch: String?
+    /// A partially-filled onboarding shipping form, saved as the user types so
+    /// backgrounding or relaunching mid-onboarding doesn't lose their input.
+    /// Cleared once onboarding completes.
+    @Published var onboardingDraft: ShippingProfile? {
+        didSet {
+            if let draft = onboardingDraft, let data = try? JSONEncoder().encode(draft) {
+                defaults.set(data, forKey: "onboardingDraft")
+            } else {
+                defaults.removeObject(forKey: "onboardingDraft")
+            }
+        }
+    }
     @Published var pendingPurchase: PendingPurchase? {
         didSet {
             // Remove the key when nil instead of persisting `null` (which would
@@ -58,6 +70,7 @@ final class ProfileStore: ObservableObject {
         self.recentSearches = defaults.stringArray(forKey: "recentSearches") ?? []
         self.zincApiKey = ZincCredentials.userApiKey
         self.pendingSearch = nil
+        self.onboardingDraft = Self.load(ShippingProfile.self, "onboardingDraft", defaults)
         self.pendingPurchase = Self.load(PendingPurchase.self, "pending", defaults)
     }
 

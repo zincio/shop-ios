@@ -5,6 +5,9 @@ struct OrderListView: View {
     /// The product to re-place, set when the user taps "Retry Order" on a failed
     /// order; presents the purchase flow for a fresh attempt.
     @State private var retryProduct: Product?
+    @State private var isRefreshing = false
+
+    private let zinc = ZincClient()
 
     var body: some View {
         NavigationStack {
@@ -20,9 +23,35 @@ struct OrderListView: View {
             }
             .navigationTitle("Orders")
             .navigationDestination(for: OrderRecord.self) { OrderDetailView(orderID: $0.id) }
+            .refreshable { await refreshActiveOrders() }
+            .toolbar {
+                if isRefreshing {
+                    ToolbarItem(placement: .topBarTrailing) { ProgressView() }
+                }
+            }
             .sheet(item: $retryProduct) { product in
                 PurchaseFlowView(product: product, quantity: 1)
             }
+            // Pull fresh status when the tab opens, rather than waiting for the
+            // ~10s background poll to catch up.
+            .task { await refreshActiveOrders() }
+        }
+    }
+
+    /// Re-fetch the latest status for every still-in-progress order. There's no
+    /// server-side order list (orders are created and stored on-device), so this
+    /// refreshes the ones we know about; terminal orders won't change.
+    private func refreshActiveOrders() async {
+        let active = store.orders.filter(\.isInProgress)
+        guard !active.isEmpty else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        for order in active {
+            guard let dto = try? await zinc.getOrder(id: order.id, apiKey: order.apiKey),
+                  var record = store.orders.first(where: { $0.id == order.id }) else { continue }
+            record.apply(dto)
+            store.upsert(record)
+            await LiveActivityManager.update(for: record)
         }
     }
 

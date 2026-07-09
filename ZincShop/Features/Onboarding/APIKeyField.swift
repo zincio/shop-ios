@@ -10,6 +10,15 @@ struct APIKeyField: View {
     @Binding var text: String
     @State private var isRevealed = false
 
+    /// A Zinc key looks like `zn_live_…` / `zn_test_…`. Used only for a gentle
+    /// format hint — an empty field is valid (falls back to the bundled dev key).
+    static func looksLikeKey(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        return trimmed.hasPrefix("zn_") && trimmed.count >= 12
+    }
+
+    private var isEmpty: Bool { text.trimmingCharacters(in: .whitespaces).isEmpty }
+
     var body: some View {
         HStack(spacing: 8) {
             Group {
@@ -22,6 +31,14 @@ struct APIKeyField: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .font(.body.monospaced())
+
+            if !isEmpty {
+                let valid = Self.looksLikeKey(text)
+                Image(systemName: valid ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .foregroundStyle(valid ? .green : .orange)
+                    .accessibilityLabel(valid ? "Key format looks valid"
+                                               : "Key should start with zn_")
+            }
 
             Button {
                 isRevealed.toggle()

@@ -42,7 +42,8 @@ struct OrderDetailView: View {
                     Section { Text(errorText).foregroundStyle(.red) }
                 }
             } else {
-                Text("Order not found.")
+                ContentUnavailableView("Order not found", systemImage: "shippingbox",
+                                       description: Text("This order is no longer available."))
             }
         }
         .listStyle(.grouped)
@@ -52,7 +53,14 @@ struct OrderDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { Task { await refresh() } } label: {
-                    if isRefreshing { ProgressView() } else { Image(systemName: "arrow.clockwise") }
+                    // Spin the icon while refreshing — clearer than swapping to a
+                    // tiny inline spinner.
+                    Image(systemName: "arrow.clockwise")
+                        .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                        .animation(isRefreshing
+                                   ? .linear(duration: 1).repeatForever(autoreverses: false)
+                                   : .default,
+                                   value: isRefreshing)
                 }
                 .disabled(isRefreshing)
             }

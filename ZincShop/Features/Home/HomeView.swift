@@ -214,7 +214,7 @@ struct ProductRow: View {
     let product: Product
     var body: some View {
         HStack(spacing: 12) {
-            thumbnail
+            ProductThumbnail(url: product.imageURL, size: 56)
             VStack(alignment: .leading, spacing: 3) {
                 Text(product.title).lineLimit(2)
                 if product.brand != nil || product.stars != nil {
@@ -248,28 +248,5 @@ struct ProductRow: View {
                     .font(.caption2).foregroundStyle(.tertiary)
             }
         }
-    }
-
-    @ViewBuilder private var thumbnail: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(.quaternary)
-            .frame(width: 56, height: 56)
-            .overlay {
-                if let url = product.imageURL {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFit().padding(4)
-                        case .failure:
-                            Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
-                        default:
-                            ProgressView()
-                        }
-                    }
-                } else {
-                    Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

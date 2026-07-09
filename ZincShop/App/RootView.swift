@@ -67,8 +67,11 @@ struct RootView: View {
 
     private func focusShopForPendingSearch() {
         // Bring the Shop tab forward so HomeView can consume the query; HomeView
-        // clears `pendingSearch` once it runs the search.
-        if store.pendingSearch != nil { selectedTab = .shop }
+        // clears `pendingSearch` once it runs the search. Animate the switch so
+        // the jump to Shop reads as intentional rather than abrupt.
+        if store.pendingSearch != nil {
+            withAnimation(.snappy) { selectedTab = .shop }
+        }
     }
 
     private func syncPendingPurchase() {

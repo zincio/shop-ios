@@ -10,6 +10,7 @@ struct OnboardingView: View {
     @State private var step: Step = .welcome
     @State private var draft = ShippingProfile()
     @State private var apiKeyDraft = ""
+    @State private var settingsOpenFailed = false
 
     enum Step: Int, CaseIterable { case welcome, shipping, apiKey, siri }
 
@@ -111,12 +112,20 @@ struct OnboardingView: View {
                 }
 
                 Button {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    guard let url = URL(string: UIApplication.openSettingsURLString) else {
+                        settingsOpenFailed = true; return
+                    }
+                    openURL(url) { accepted in if !accepted { settingsOpenFailed = true } }
                 } label: {
                     Label("Open Settings", systemImage: "gear")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .alert("Couldn't open Settings", isPresented: $settingsOpenFailed) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("Open the Settings app manually, then go to Apps → Zinc → Siri and turn it on.")
+                }
 
                 PhraseCard()
             }

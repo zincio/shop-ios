@@ -72,7 +72,7 @@ struct OrderRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            OrderThumbnail(url: order.productImageURL)
+            ProductThumbnail(url: order.productImageURL)
             VStack(alignment: .leading, spacing: 5) {
                 Text(order.productTitle).lineLimit(1)
                 HStack(spacing: 6) {
@@ -116,8 +116,9 @@ struct StatusBadge: View {
     }
 }
 
-/// Product image thumbnail shared by the Orders list and detail.
-struct OrderThumbnail: View {
+/// Product image thumbnail with a consistent placeholder/loading look, shared
+/// by the search results (`ProductRow`) and the Orders list (`OrderRow`).
+struct ProductThumbnail: View {
     let url: URL?
     var size: CGFloat = 52
 

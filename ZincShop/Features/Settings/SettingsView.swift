@@ -23,8 +23,11 @@ struct SettingsView: View {
     private var guardrailSection: some View {
         Section("Spending guardrail") {
             Stepper(value: $capDollars, in: 5...500, step: 5) {
-                LabeledContent("Per-order price cap",
-                               value: capDollars.formatted(.currency(code: "USD")))
+                LabeledContent("Per-order price cap") {
+                    Text(capDollars.formatted(.currency(code: "USD")))
+                        .font(.headline).foregroundStyle(.tint)
+                        .contentTransition(.numericText())
+                }
             }
             Text("Orders above this amount are blocked automatically.")
                 .font(.caption).foregroundStyle(.secondary)

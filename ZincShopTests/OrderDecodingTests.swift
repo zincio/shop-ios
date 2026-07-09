@@ -43,6 +43,31 @@ final class OrderDecodingTests: XCTestCase {
         XCTAssertNil(ZincClient.jobResultError(from: Data(none.utf8)))
     }
 
+    func testReorderProductRebuildsFromStoredFields() throws {
+        let product = Product(url: "https://www.amazon.com/dp/B01N5IB20Q", title: "Toilet Paper",
+                              priceCents: 2399, imageURL: nil, retailer: "amazon")
+        let dto = try ZincClient.decoder.decode(
+            AgentOrderDTO.self, from: #"{"id":"o1","status":"failed"}"#.data(using: .utf8)!)
+        let record = OrderRecord(dto: dto, product: product, apiKey: nil)
+
+        let rebuilt = try XCTUnwrap(record.reorderProduct)
+        XCTAssertEqual(rebuilt.url, product.url)
+        XCTAssertEqual(rebuilt.title, product.title)
+        XCTAssertEqual(rebuilt.priceCents, product.priceCents)
+        XCTAssertEqual(rebuilt.retailer, product.retailer)
+    }
+
+    func testReorderProductNilForRecordMissingURL() throws {
+        // An order persisted before productURL/retailer existed decodes with
+        // those fields nil and simply can't be retried.
+        let legacy = #"""
+        {"id":"o1","status":"failed","trackingNumbers":[],"productTitle":"Old Item",
+         "priceCents":1000,"createdAt":0}
+        """#.data(using: .utf8)!
+        let record = try JSONDecoder().decode(OrderRecord.self, from: legacy)
+        XCTAssertNil(record.reorderProduct)
+    }
+
     func testApplyMergesStatusAndTracking() throws {
         let product = Product(url: "u", title: "Toilet Paper", priceCents: 2399,
                               imageURL: nil, retailer: "amazon")

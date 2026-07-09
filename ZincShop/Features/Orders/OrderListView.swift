@@ -2,12 +2,16 @@ import SwiftUI
 
 struct OrderListView: View {
     @EnvironmentObject private var store: ProfileStore
+    /// The product to re-place, set when the user taps "Retry Order" on a failed
+    /// order; presents the purchase flow for a fresh attempt.
+    @State private var retryProduct: Product?
 
     var body: some View {
         NavigationStack {
             List {
                 ForEach(store.orders) { order in
                     NavigationLink(value: order) { OrderRow(order: order) }
+                        .contextMenu { rowActions(order) }
                 }
                 if store.orders.isEmpty {
                     ContentUnavailableView("No orders yet", systemImage: "shippingbox",
@@ -16,6 +20,20 @@ struct OrderListView: View {
             }
             .navigationTitle("Orders")
             .navigationDestination(for: OrderRecord.self) { OrderDetailView(orderID: $0.id) }
+            .sheet(item: $retryProduct) { product in
+                PurchaseFlowView(product: product, quantity: 1)
+            }
+        }
+    }
+
+    /// Retry is offered only for failed orders we can rebuild the product for.
+    @ViewBuilder private func rowActions(_ order: OrderRecord) -> some View {
+        if order.isFailed, let product = order.reorderProduct {
+            Button {
+                retryProduct = product
+            } label: {
+                Label("Retry Order", systemImage: "arrow.clockwise")
+            }
         }
     }
 }

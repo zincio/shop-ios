@@ -11,19 +11,22 @@ enum VisionImageClassifier {
         limit: Int = 3
     ) async -> [String] {
         guard let pixelBuffer else { return [] }
-        let request = VNClassifyImageRequest()
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
-        do {
-            try handler.perform([request])
-        } catch {
-            return []
-        }
-        let observations = (request.results ?? [])
-            .filter { $0.confidence >= minimumConfidence }
-            .prefix(limit)
-        // Vision identifiers look like "coffee_mug"; humanize for search.
-        return observations.map {
-            $0.identifier.replacingOccurrences(of: "_", with: " ")
-        }
+        return await Task.detached(priority: .userInitiated) {
+            let request = VNClassifyImageRequest()
+            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+            do {
+                try handler.perform([request])
+            } catch {
+                return []
+            }
+            let observations = (request.results ?? [])
+                .filter { $0.confidence >= minimumConfidence }
+                .sorted { $0.confidence > $1.confidence }
+                .prefix(limit)
+            // Vision identifiers look like "coffee_mug"; humanize for search.
+            return observations.map {
+                $0.identifier.replacingOccurrences(of: "_", with: " ")
+            }
+        }.value
     }
 }

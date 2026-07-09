@@ -154,6 +154,10 @@ struct HomeView: View {
                         Task { await runSearch() }
                     } label: {
                         Label(term, systemImage: "clock.arrow.circlepath")
+                            // Fill the row and claim its whole area so a tap
+                            // anywhere on the row (not just the text) re-runs it.
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

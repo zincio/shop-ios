@@ -51,6 +51,11 @@ struct OrderRecord: Codable, Identifiable, Hashable {
     var productImageURL: URL?
     var priceCents: Int
     var createdAt: Date
+    /// Retailer product URL and name, kept so a failed order can be re-placed.
+    /// Optional so orders persisted before this field still decode (they just
+    /// can't be retried).
+    var productURL: String?
+    var retailer: String?
     /// Order-scoped key returned in the `X-Api-Key` response header.
     var apiKey: String?
     /// Failure reason from `job_result`, shown in the order detail.
@@ -66,6 +71,8 @@ struct OrderRecord: Codable, Identifiable, Hashable {
         self.apiKey = apiKey
         self.createdAt = createdAt
         self.jobResultError = dto.jobResultError
+        self.productURL = product.url
+        self.retailer = product.retailer
     }
 
     /// Merge a fresh server fetch into the stored record.
@@ -98,5 +105,14 @@ struct OrderRecord: Codable, Identifiable, Hashable {
         case "failed", "error", "cancelled", "canceled": return true
         default: return false
         }
+    }
+
+    /// Rebuilds the `Product` this order was placed for, so a failed order can be
+    /// re-placed through the normal purchase flow. Nil for orders persisted
+    /// before `productURL`/`retailer` were stored.
+    var reorderProduct: Product? {
+        guard let productURL, let retailer else { return nil }
+        return Product(url: productURL, title: productTitle, priceCents: priceCents,
+                       imageURL: productImageURL, retailer: retailer)
     }
 }

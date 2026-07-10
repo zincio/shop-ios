@@ -18,9 +18,10 @@ struct ProductEntity: AppEntity, Identifiable {
 
     var displayRepresentation: DisplayRepresentation {
         let price = (Double(priceCents) / 100).formatted(.currency(code: "USD"))
+        let image: DisplayRepresentation.Image? = imageURL.map { .init(url: $0) }
         return priceCents > 0
-            ? DisplayRepresentation(title: "\(title)", subtitle: "\(price)")
-            : DisplayRepresentation(title: "\(title)")
+            ? DisplayRepresentation(title: "\(title)", subtitle: "\(price)", image: image)
+            : DisplayRepresentation(title: "\(title)", image: image)
     }
 
     init(_ product: Product) {

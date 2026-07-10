@@ -5,6 +5,14 @@ import AppIntents
 /// product: Siri passes the words it heard to `entities(matching:)`, which runs
 /// a product search. Coverage is whatever search returns — the full catalog once
 /// live Zinc search is enabled, or `MockCatalog` in this prototype.
+/// Shared mapping so every entry point (typed/spoken query, visual search)
+/// sorts and shapes results identically.
+enum ProductEntityMapping {
+    static func entities(from products: [Product]) -> [ProductEntity] {
+        products.sorted { $0.priceCents < $1.priceCents }.map(ProductEntity.init)
+    }
+}
+
 struct ProductEntityQuery: EntityStringQuery {
     /// Resolve arbitrary spoken/typed text (the App Shortcut parameter path).
     /// Sorted cheapest-first (matching the Shop tab's default) so the Shortcuts
@@ -12,9 +20,8 @@ struct ProductEntityQuery: EntityStringQuery {
     /// the lowest-priced match when it takes `.first`.
     func entities(matching string: String) async throws -> [ProductEntity] {
         let products = try await ZincClient().search(string)
-            .sorted { $0.priceCents < $1.priceCents }
         await ProductEntityCache.shared.store(products)
-        return products.map(ProductEntity.init)
+        return ProductEntityMapping.entities(from: products)
     }
 
     /// Re-resolve a previously chosen entity by its id (URL).

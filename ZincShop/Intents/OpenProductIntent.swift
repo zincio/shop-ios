@@ -7,6 +7,11 @@ import AppIntents
 /// `OpenIntent` with `ProductEntity` is also what makes the entity "openable" for
 /// the Visual Intelligence `IntentValueQuery` results (required by the App Intents
 /// metadata processor).
+///
+/// Unlike `BuyProductIntent`, there's deliberately no shipping-completeness guard
+/// here: this foregrounds the app and lands on `PurchaseFlowView`, where an
+/// incomplete address is handled in-app — versus the headless intent, which must
+/// bail before it loses the chance to prompt.
 struct OpenProductIntent: OpenIntent {
     static let title: LocalizedStringResource = "Open Product"
 

@@ -98,3 +98,23 @@ Vision-only) for robustness with no backend.
   installed SDK during implementation (xcode docs MCP dropped mid-session).
 ```
 
+## Device verification checklist
+
+Visual Intelligence can't be simulator-tested (framework is device-SDK only;
+panel needs Apple-Intelligence hardware + iOS 26/27). On a real device:
+
+1. Open **Visual Intelligence** (Camera Control / Control Center / Lock Screen).
+2. Point at a real product, or pick a photo from the library.
+3. Tap **Search** → confirm **Zinc** appears among the app results.
+4. Confirm Zinc shows product cards with title, price, and thumbnail (rendered
+   from each `ProductEntity`'s `DisplayRepresentation`).
+5. Tap a card → app foregrounds into `PurchaseFlowView` (`.ready` state) for that
+   product — no auto-charge.
+6. Confirm **Apple Pay / Confirm Order** behaves; with `devMode` on, verify the
+   `max_price = 0` cap so nothing finalizes.
+7. Sanity: a photo with no confident match returns no results (no crash/alert).
+
+Debugger is disabled on the beta (`debugEnabled: false`), so watch logs in
+**Console.app** (subsystem `io.zinc.zincshop`) or via
+`xcrun simctl spawn <dev> log stream`.
+

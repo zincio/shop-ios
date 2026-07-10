@@ -46,6 +46,13 @@ real captured challenge.
 4. Order placed → tracked via a Live Activity (Lock Screen / Dynamic Island),
    polled with the Bearer key (keyed) or the per-order `X-Api-Key` (MPP).
 
+## Visual Intelligence
+
+Point your camera at a product (or pick a photo) via Visual Intelligence, tap
+**Search** → **Zinc**, and tap a match to buy — photo → results → in-app Apple
+Pay. Needs a real Apple-Intelligence device; see `ZincShop/Intents/` (the
+`.visualIntelligence.semanticContentSearch` schema).
+
 ## First run: enabling the Siri shortcut (required)
 
 On first launch the app shows a short onboarding (`OnboardingView`): welcome →

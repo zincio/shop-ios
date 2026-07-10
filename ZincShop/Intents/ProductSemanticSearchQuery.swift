@@ -11,13 +11,11 @@ import VisualIntelligence
 @available(iOS 26.0, *)
 struct ProductSemanticSearchQuery: IntentValueQuery {
     func values(for input: SemanticContentDescriptor) async throws -> [ProductEntity] {
-        // `SemanticContentDescriptor.pixelBuffer` is a `CVReadOnlyPixelBuffer?`
-        // whose underlying `CVPixelBuffer` is only vended inside `withUnsafeBuffer`.
-        // Grab that reference once so we can hand it to the (async) classifier.
-        let pixelBuffer: CVPixelBuffer? = input.pixelBuffer?.withUnsafeBuffer { $0 }
-
+        // Labels first; only if Visual Intelligence gives none do we classify the
+        // frame ourselves. The pixel buffer is valid only inside `withUnsafeBuffer`,
+        // so classify synchronously in-scope — never let the buffer escape.
         let query = await SemanticQueryBuilder.query(labels: input.labels) {
-            await VisionImageClassifier.labels(from: pixelBuffer)
+            input.pixelBuffer?.withUnsafeBuffer { VisionImageClassifier.labels(from: $0) } ?? []
         }
         guard let query else { return [] }
 

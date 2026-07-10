@@ -9,9 +9,11 @@ import AppIntents
 /// metadata processor).
 ///
 /// Unlike `BuyProductIntent`, there's deliberately no shipping-completeness guard
-/// here: this foregrounds the app and lands on `PurchaseFlowView`, where an
-/// incomplete address is handled in-app — versus the headless intent, which must
-/// bail before it loses the chance to prompt.
+/// here: this foregrounds the app and lands on `PurchaseFlowView`, matching the
+/// other in-app buy entry points (`HomeView`, `OrderListView`), which also present
+/// it unguarded. The headless intent must guard because it can't prompt once it
+/// loses the foreground; here an incomplete address just surfaces as the normal
+/// in-app failure card.
 struct OpenProductIntent: OpenIntent {
     static let title: LocalizedStringResource = "Open Product"
 

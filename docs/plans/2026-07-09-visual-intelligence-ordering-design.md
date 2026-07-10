@@ -80,8 +80,10 @@ Vision-only) for robustness with no backend.
 - No labels + no confident Vision result → `[]`, no crash/alert.
 - `ZincClient.search` throws → catch, return `[]` (matches the app's existing
   lenient search-fallback posture; failure is invisible in the VI panel).
-- Missing shipping on tap-through → existing guards handle it; mirror
-  `BuyProductIntent`'s "add your shipping address first" message.
+- Missing shipping on tap-through → no headless guard (the app is foregrounded);
+  an incomplete address surfaces as the normal in-app failure card, same as the
+  other in-app buy entry points (`HomeView`, `OrderListView`). A friendlier
+  address prompt would be a separate follow-up touching all three.
 - Dev mode / price cap → untouched; enforced by the existing `PurchaseFlowView`.
 
 ## Testing & project wiring

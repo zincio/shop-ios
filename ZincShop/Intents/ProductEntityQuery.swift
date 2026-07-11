@@ -1,12 +1,15 @@
 import AppIntents
 
 /// Shared mapping so every entry point (typed/spoken query, visual search)
-/// sorts and shapes results identically.
+/// shapes results identically.
+///
+/// Order is **preserved** from search: the Zinc API ranks results by relevance,
+/// so its first item is the best match for the query. Re-sorting here (e.g. by
+/// price) put a cheap accessory above the actual product and made the Siri
+/// disambiguation list jump around between calls — so we keep the API's order.
 enum ProductEntityMapping {
     static func entities(from products: [Product]) -> [ProductEntity] {
-        products
-            .sorted { ($0.priceCents, $0.url) < ($1.priceCents, $1.url) }
-            .map(ProductEntity.init)
+        products.map(ProductEntity.init)
     }
 }
 
@@ -17,9 +20,8 @@ enum ProductEntityMapping {
 /// live Zinc search is enabled, or `MockCatalog` in this prototype.
 struct ProductEntityQuery: EntityStringQuery {
     /// Resolve arbitrary spoken/typed text (the App Shortcut parameter path).
-    /// Sorted cheapest-first (matching the Shop tab's default) so the Shortcuts
-    /// picker lists the best-value options up top and `BuyProductIntent` orders
-    /// the lowest-priced match when it takes `.first`.
+    /// Kept in the search API's relevance order so the Shortcuts/Siri picker
+    /// lists the best-matching product first (see `ProductEntityMapping`).
     func entities(matching string: String) async throws -> [ProductEntity] {
         let products = try await ZincClient().search(string)
         await ProductEntityCache.shared.store(products)

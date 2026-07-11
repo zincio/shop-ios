@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// Ordering applied to search results. Defaults to cheapest-first so the top row
-/// is the best deal — the same bias the Siri "top match" purchase uses.
+/// Ordering applied to search results. Defaults to Relevance so the top row is
+/// the search API's best match (a price default made results jump around);
+/// price sorts stay available as chips.
 enum SortOption: String, CaseIterable, Identifiable {
+    case relevance = "Relevance"
     case priceLowToHigh = "Price: Low to High"
     case priceHighToLow = "Price: High to Low"
-    case relevance = "Relevance"
 
     var id: String { rawValue }
 
@@ -34,7 +35,7 @@ struct HomeView: View {
     @State private var isSearching = false
     @State private var errorText: String?
     @State private var selectedProduct: Product?
-    @State private var sortOption: SortOption = .priceLowToHigh
+    @State private var sortOption: SortOption = .relevance
     /// The query whose (possibly empty) results are currently on screen, set once a
     /// search completes successfully. Lets the empty state say "No results for X"
     /// instead of falling back to the blank-slate prompt.

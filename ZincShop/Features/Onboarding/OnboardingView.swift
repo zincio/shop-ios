@@ -84,6 +84,7 @@ struct OnboardingView: View {
         Form {
             Section {
                 APIKeyField(text: $apiKeyDraft)
+                APIKeyVerifyRow(key: apiKeyDraft)
             } header: {
                 Text("Your Zinc API key")
             } footer: {

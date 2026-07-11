@@ -43,6 +43,7 @@ struct SettingsView: View {
     private var apiKeySection: some View {
         Section {
             APIKeyField(text: $store.zincApiKey)
+            APIKeyVerifyRow(key: store.zincApiKey)
         } header: {
             Text("Zinc API key")
         } footer: {

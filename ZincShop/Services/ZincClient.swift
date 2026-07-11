@@ -5,6 +5,7 @@ enum ZincError: LocalizedError {
     case decoding(String)
     case noProductsFound
     case transport(String)
+    case unauthorized
 
     var errorDescription: String? {
         switch self {
@@ -12,6 +13,8 @@ enum ZincError: LocalizedError {
         case .decoding(let m): return "Couldn't read Zinc response: \(m)"
         case .noProductsFound: return "No products found."
         case .transport(let m): return "Network error: \(m)"
+        case .unauthorized:
+            return "Your Zinc API key was rejected. Open Zinc → Settings and check your key."
         }
     }
 }
@@ -29,28 +32,60 @@ struct ZincClient {
     // MARK: Search
 
     /// Search priority:
-    /// 1. Keyed cross-retailer search (`GET /search`, Bearer) when a Zinc API key
-    ///    is set. Chosen over `/products/search` because it returns star ratings
-    ///    and many more results (the retailer-specific endpoint returns null stars
-    ///    and only a handful of items).
-    /// 2. Built-in demo catalog otherwise / on any failure.
+    /// 1. When a Zinc API key is set: keyed cross-retailer search (`GET /search`,
+    ///    Bearer) exclusively. A rejected key or network failure now *throws* so
+    ///    the UI (and Siri) can tell the user, instead of silently masking a bad
+    ///    key behind the demo catalog.
+    /// 2. No key at all: the built-in demo catalog, so the app is usable offline.
     func search(_ query: String) async throws -> [Product] {
-        if !ZincCredentials.apiKey.isEmpty {
-            if let live = try? await keyedSearch(query), !live.isEmpty { return live }
+        guard !ZincCredentials.apiKey.isEmpty else {
+            return try await searchFallback.search(query)
         }
-        return try await searchFallback.search(query)
+        return try await keyedSearch(query)
     }
 
     /// Cross-retailer search: `GET /search?q=…` with a Bearer API key. Results
-    /// carry `url`, per-item `retailer`, and `stars`.
+    /// carry `url`, per-item `retailer`, and `stars`. Throws `.unauthorized` on a
+    /// rejected key (401/403) so callers can prompt the user to fix it.
     private func keyedSearch(_ query: String) async throws -> [Product] {
         guard let url = searchURL("search", query) else { return [] }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         req.setValue("Bearer \(ZincCredentials.apiKey)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await session.data(for: req)
-        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return [] }
-        return SearchResponseMapper.products(from: data)
+        switch (resp as? HTTPURLResponse)?.statusCode ?? 0 {
+        case 200:
+            return SearchResponseMapper.products(from: data)
+        case 401, 403:
+            throw ZincError.unauthorized
+        case let code:
+            throw ZincError.http(code, String(data: data, encoding: .utf8) ?? "")
+        }
+    }
+
+    /// One-shot credential check for the Settings/onboarding "Verify" button.
+    /// Runs a minimal keyed search with the supplied key and reports whether the
+    /// key is accepted — without touching the stored key or the demo fallback.
+    enum KeyCheck { case valid, invalid, networkError }
+
+    func verify(key: String) async -> KeyCheck {
+        let trimmed = SecretsStore.clean(key)
+        guard !trimmed.isEmpty, let url = searchURL("search", "phone") else {
+            return .networkError
+        }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 15
+        req.setValue("Bearer \(trimmed)", forHTTPHeaderField: "Authorization")
+        do {
+            let (_, resp) = try await session.data(for: req)
+            switch (resp as? HTTPURLResponse)?.statusCode ?? 0 {
+            case 200:        return .valid
+            case 401, 403:   return .invalid
+            default:         return .networkError
+            }
+        } catch {
+            return .networkError
+        }
     }
 
     private func searchURL(_ path: String, _ query: String) -> URL? {

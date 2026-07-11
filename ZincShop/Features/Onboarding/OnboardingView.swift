@@ -26,6 +26,10 @@ struct OnboardingView: View {
 
             footer
         }
+        // One background for the whole flow (extending under the status bar) so
+        // the progress-dots strip doesn't show as a white bar above the Form's
+        // grouped-gray background.
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .animation(.snappy, value: step)
         .onAppear {
             // Restore a form the user started before backgrounding; otherwise

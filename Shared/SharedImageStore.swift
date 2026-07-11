@@ -9,8 +9,16 @@ import UIKit
 /// App Group container; the widget then loads it synchronously from disk by
 /// order id at render time.
 enum SharedImageStore {
-    /// Must match `com.apple.security.application-groups` in both targets' entitlements.
-    static let appGroupID = "group.io.zinc.zincshop"
+    /// Must match `com.apple.security.application-groups` in both targets'
+    /// entitlements. Injected from `APP_BUNDLE_PREFIX` (Config/Secrets.xcconfig)
+    /// via each target's Info.plist `AppGroupIdentifier`, so app and widget stay
+    /// in sync with the entitlements; falls back to the upstream default. Lives
+    /// here (not `SecretsStore`) because `Shared/` compiles into the widget too.
+    static let appGroupID: String = {
+        let value = (Bundle.main.object(forInfoDictionaryKey: "AppGroupIdentifier") as? String) ?? ""
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "group.io.zinc.zincshop" : trimmed
+    }()
 
     /// Longest edge for the cached thumbnail. Live Activity art is shown small,
     /// so keep it tiny to stay well within the widget's memory budget.

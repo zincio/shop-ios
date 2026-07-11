@@ -79,7 +79,7 @@ targets:
       Release: Config/Secrets.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX)
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX:default=io.zinc.zincshop)
         INFOPLIST_FILE: ZincShop/Info.plist
         CODE_SIGN_ENTITLEMENTS: ZincShop/ZincShop.entitlements
         GENERATE_INFOPLIST_FILE: "NO"
@@ -98,7 +98,7 @@ targets:
       Release: Config/Secrets.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX).widget
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX:default=io.zinc.zincshop).widget
         INFOPLIST_FILE: ZincShopWidget/Info.plist
         CODE_SIGN_ENTITLEMENTS: ZincShopWidget/ZincShopWidget.entitlements
         GENERATE_INFOPLIST_FILE: "NO"
@@ -115,7 +115,7 @@ targets:
       Release: Config/Secrets.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX).tests
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX:default=io.zinc.zincshop).tests
         GENERATE_INFOPLIST_FILE: "YES"
 
   # UI-test bundle hosting the AppIntentsTesting end-to-end intent tests. It does
@@ -133,7 +133,7 @@ targets:
       Release: Config/Secrets.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX).uitests
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_PREFIX:default=io.zinc.zincshop).uitests
         GENERATE_INFOPLIST_FILE: "YES"
         TEST_TARGET_NAME: ZincShop
         # AppIntentsTesting's IntentDefinitions API requires iOS 27 (Xcode 27 SDK);

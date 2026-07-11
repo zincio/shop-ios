@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>AppGroupIdentifier</key>
-	<string>group.$(APP_BUNDLE_PREFIX)</string>
+	<string>group.$(APP_BUNDLE_PREFIX:default=io.zinc.zincshop)</string>
 	<key>ApplePayMerchantID</key>
 	<string>$(APPLE_PAY_MERCHANT_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>

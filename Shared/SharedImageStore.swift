@@ -17,7 +17,14 @@ enum SharedImageStore {
     static let appGroupID: String = {
         let value = (Bundle.main.object(forInfoDictionaryKey: "AppGroupIdentifier") as? String) ?? ""
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "group.io.zinc.zincshop" : trimmed
+        // A bare "group." (empty APP_BUNDLE_PREFIX) or a literal "$(…)" means the
+        // build setting didn't resolve — fall back rather than use an invalid ID,
+        // which would make containerURL(forSecurityApplicationGroupIdentifier:)
+        // return nil and silently drop every thumbnail.
+        guard !trimmed.isEmpty, trimmed != "group.", !trimmed.contains("$(") else {
+            return "group.io.zinc.zincshop"
+        }
+        return trimmed
     }()
 
     /// Longest edge for the cached thumbnail. Live Activity art is shown small,

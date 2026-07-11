@@ -24,6 +24,6 @@
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
 	<key>AppGroupIdentifier</key>
-	<string>group.$(APP_BUNDLE_PREFIX)</string>
+	<string>group.$(APP_BUNDLE_PREFIX:default=io.zinc.zincshop)</string>
 </dict>
 </plist>

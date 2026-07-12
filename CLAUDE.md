@@ -28,11 +28,13 @@ xcodebuild test ... -only-testing:ZincShopTests/PaymentChallengeTests/testParses
 Notes:
 - Tests are plain XCTest in the `ZincShopTests` target (unit-only; no UI tests). They cover the pure logic — search mappers, order encode/decode, `job_result`/challenge parsing, secret cleaning.
 - If `-destination` "cannot find a device", list with `xcrun simctl list devices available` and pass `id=<UUID>`.
-- On-device (Siri, Apple Pay, Face ID, App Group) needs a real device + the dev team already set in `project.yml` (`DEVELOPMENT_TEAM`); simulator covers everything else.
+- On-device (Siri, Apple Pay, Face ID, App Group) needs a real device + a signing team. Set `DEVELOPMENT_TEAM` (and, to avoid clashing with Zinc's registered identifiers, `APP_BUNDLE_PREFIX`) in `Config/Secrets.xcconfig` — they're **not** committed. Simulator builds skip signing entirely and work with the blank defaults.
 
 ## Secrets & configuration
 
 `Config/Secrets.xcconfig` (gitignored) → Info.plist `$(VAR)` → `SecretsStore`. Keys: `ZINC_API_KEY`, `STRIPE_PUBLISHABLE_KEY`, `APPLE_PAY_MERCHANT_ID`, `ZINC_BASE_URL`. **The presence of a resolved Zinc API key flips the app between keyed and MPP paths** (see below).
+
+The same xcconfig also carries **signing/identity** (per-developer, uncommitted): `DEVELOPMENT_TEAM` and `APP_BUNDLE_PREFIX`. The latter drives every target's `PRODUCT_BUNDLE_IDENTIFIER` (`$(APP_BUNDLE_PREFIX)[.widget/.tests/.uitests]`), the App Group (`group.$(APP_BUNDLE_PREFIX)` in both `.entitlements` and both `Info.plist`s), and — read back in code — `SharedImageStore.appGroupID` (via the `AppGroupIdentifier` Info.plist key, since `Shared/` also compiles into the widget where `SecretsStore` isn't available). Apple Pay's merchant comes from `APPLE_PAY_MERCHANT_ID`. Because these flow through the xcconfig, **all targets set `configFiles: Config/Secrets.xcconfig`** (not just the app) so the vars resolve at build time.
 
 **Zinc key resolution (`ZincCredentials`, not `SecretsStore`, for the key):** all request sites read `ZincCredentials.apiKey`, which prefers the **user's own key** (entered in onboarding / Settings, stored in the **Keychain**) and falls back to the build-time `ZINC_API_KEY` from `Secrets.xcconfig` as a dev convenience. `ProfileStore.zincApiKey` mirrors the Keychain value for UI binding (empty ⇒ using the bundled dev key). `SecretsStore.zincApiKey` is now only the raw build value — don't read it directly for requests.
 

@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AppGroupIdentifier</key>
+	<string>group.$(APP_BUNDLE_PREFIX:default=io.zinc.zincshop)</string>
+	<key>ApplePayMerchantID</key>
+	<string>$(APPLE_PAY_MERCHANT_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -18,8 +22,16 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Zinc uses Face ID through Apple Pay to confirm your purchases.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>StripePublishableKey</key>
+	<string>$(STRIPE_PUBLISHABLE_KEY)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiresFullScreen</key>
@@ -35,19 +47,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Zinc uses Face ID through Apple Pay to confirm your purchases.</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>StripePublishableKey</key>
-	<string>$(STRIPE_PUBLISHABLE_KEY)</string>
-	<key>ApplePayMerchantID</key>
-	<string>$(APPLE_PAY_MERCHANT_ID)</string>
-	<key>ZincBaseURL</key>
-	<string>$(ZINC_BASE_URL)</string>
 	<key>ZincApiKey</key>
 	<string>$(ZINC_API_KEY)</string>
+	<key>ZincBaseURL</key>
+	<string>$(ZINC_BASE_URL)</string>
 </dict>
 </plist>

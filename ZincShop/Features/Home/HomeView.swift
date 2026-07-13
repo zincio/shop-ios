@@ -199,6 +199,10 @@ struct HomeView: View {
     private func runSearch() async {
         let term = query.trimmingCharacters(in: .whitespaces)
         guard !term.isEmpty else { return }
+        // Every fresh search returns to the relevance default. Otherwise a price
+        // sort chosen for a prior query silently reorders the next query's
+        // results, defeating relevance-as-default on the second search onward.
+        sortOption = .relevance
         isSearching = true; errorText = nil
         defer { isSearching = false }
         do {

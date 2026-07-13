@@ -61,8 +61,7 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
             do {
                 let order = try await OrderCoordinator().purchase(
                     product: top, quantity: 1, shipping: store.shipping,
-                    maxPriceCents: store.priceCapCents, devMode: store.devMode,
-                    requireBiometric: false
+                    maxPriceCents: store.priceCapCents, devMode: store.devMode
                 )
                 store.upsert(order)
                 OrderTracker.shared.track(order)

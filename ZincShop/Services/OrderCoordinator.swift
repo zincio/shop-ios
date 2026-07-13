@@ -17,13 +17,8 @@ final class OrderCoordinator {
         self.applePay = applePay ?? ApplePayService()
     }
 
-    /// - Parameter requireBiometric: gate the keyed path behind Face ID. The
-    ///   in-app flow passes `true`; the Siri path passes `false` because Siri's
-    ///   own order confirmation is the authorization and Face ID can't reliably
-    ///   present from a background intent.
     func purchase(product: Product, quantity: Int, shipping: ShippingProfile,
-                  maxPriceCents: Int, devMode: Bool = false,
-                  requireBiometric: Bool = true) async throws -> OrderRecord {
+                  maxPriceCents: Int, devMode: Bool = false) async throws -> OrderRecord {
         // Dev mode sends max_price = 0 so the order can never finalize (safe
         // testing); the price-cap guard is skipped since 0 would always trip it.
         let effectiveMax = devMode ? 0 : maxPriceCents
@@ -37,7 +32,7 @@ final class OrderCoordinator {
                                     maxPriceCents: effectiveMax, idempotencyKey: UUID().uuidString)
 
         if !ZincCredentials.apiKey.isEmpty {
-            return try await keyedOrder(body: body, product: product, requireBiometric: requireBiometric)
+            return try await keyedOrder(body: body, product: product)
         } else {
             return try await mppOrder(body: body, product: product, maxPriceCents: effectiveMax)
         }
@@ -45,11 +40,8 @@ final class OrderCoordinator {
 
     // MARK: Keyed (wallet-funded) order with a Face ID guard
 
-    private func keyedOrder(body: OrderRequestBody, product: Product,
-                            requireBiometric: Bool) async throws -> OrderRecord {
-        if requireBiometric {
-            try await BiometricAuth.confirm("Confirm your order of \(product.title)")
-        }
+    private func keyedOrder(body: OrderRequestBody, product: Product) async throws -> OrderRecord {
+        try await BiometricAuth.confirm("Confirm your order of \(product.title)")
         let (resp, data) = try await zinc.createKeyedOrder(body: body)
         guard resp.statusCode == 201 else {
             throw ZincError.http(resp.statusCode, Self.message(data))

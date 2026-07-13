@@ -61,6 +61,11 @@ struct APIKeyVerifyRow: View {
 
     enum Status: Equatable { case idle, checking, valid, invalid, networkError }
     @State private var status: Status = .idle
+    /// Incremented whenever the key changes so an in-flight verify started
+    /// against an older key can recognize its result is stale and drop it
+    /// (otherwise: tap Verify, edit the key, and the old key's ✓/✗ lands next
+    /// to the new key).
+    @State private var generation = 0
 
     private var trimmed: String { key.trimmingCharacters(in: .whitespaces) }
 
@@ -85,8 +90,11 @@ struct APIKeyVerifyRow: View {
                     .foregroundStyle(color)
             }
         }
-        // A changed key invalidates a prior result.
-        .onChange(of: key) { _, _ in status = .idle }
+        // A changed key invalidates a prior result — and any in-flight check.
+        .onChange(of: key) { _, _ in
+            generation += 1
+            status = .idle
+        }
     }
 
     private var message: (String, String, Color)? {
@@ -99,8 +107,13 @@ struct APIKeyVerifyRow: View {
     }
 
     private func verify() async {
+        let gen = generation
         status = .checking
         let result = await ZincClient().verify(key: trimmed)
+        // The key was edited while this request was in flight (onChange bumped
+        // `generation` and reset to .idle) — this result describes the OLD key,
+        // so drop it rather than mislabel the new one.
+        guard gen == generation else { return }
         switch result {
         case .valid:        status = .valid
         case .invalid:      status = .invalid

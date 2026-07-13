@@ -21,7 +21,11 @@ struct ProductEntityQuery: EntityStringQuery {
     /// picker lists the best-value options up top and `BuyProductIntent` orders
     /// the lowest-priced match when it takes `.first`.
     func entities(matching string: String) async throws -> [ProductEntity] {
-        let products = try await ZincClient().search(string)
+        // Keep resolution resilient: a thrown search error (rejected key, network
+        // blip) must NOT bubble up to Siri, which reacts by abandoning the
+        // headless flow (and can bounce into the app). Return no matches instead
+        // — the in-app search screen is where a bad key is surfaced to the user.
+        let products = (try? await ZincClient().search(string)) ?? []
         await ProductEntityCache.shared.store(products)
         return ProductEntityMapping.entities(from: products)
     }

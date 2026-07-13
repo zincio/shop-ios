@@ -96,6 +96,10 @@ struct PurchaseFailure: Equatable {
             return .init(title: "Product unavailable",
                          message: "This product is no longer available to order.",
                          recovery: .dismiss)
+        case .unauthorized:
+            return .init(title: "API key rejected",
+                         message: "Your Zinc API key was rejected. Open Settings and check your key.",
+                         recovery: .dismiss)
         }
     }
 

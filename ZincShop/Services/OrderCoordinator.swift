@@ -29,7 +29,8 @@ final class OrderCoordinator {
         }
 
         let body = OrderRequestBody(product: product, quantity: quantity, shipping: shipping,
-                                    maxPriceCents: effectiveMax, idempotencyKey: UUID().uuidString)
+                                    maxPriceCents: effectiveMax,
+                                    idempotencyKey: Self.idempotencyKey(product: product, quantity: quantity))
 
         if !ZincCredentials.apiKey.isEmpty {
             return try await keyedOrder(body: body, product: product)
@@ -85,5 +86,19 @@ final class OrderCoordinator {
 
     private static func message(_ data: Data) -> String {
         String(data: data, encoding: .utf8) ?? "unknown error"
+    }
+
+    /// Idempotency key derived from the order's stable content plus a short time
+    /// bucket, so a retried request (e.g. Siri re-running `perform()`, or a
+    /// double-tap of Pay) within the window collapses to the same order server
+    /// side instead of double-charging. A fresh `UUID` per call — the previous
+    /// behavior — defeated the key entirely. The bucket is coarse enough to
+    /// absorb retries yet short enough that a deliberate re-order of the same
+    /// item a few minutes later still gets a new key.
+    private static let idempotencyWindowSeconds: TimeInterval = 120
+
+    static func idempotencyKey(product: Product, quantity: Int) -> String {
+        let bucket = Int(Date().timeIntervalSince1970 / idempotencyWindowSeconds)
+        return "\(product.url)#\(quantity)#\(bucket)"
     }
 }

@@ -18,7 +18,7 @@ import SwiftUI
 /// to present over the half-launched app, leaving a black screen. The correct
 /// pattern is `ForegroundContinuableIntent`: stay headless, and foreground
 /// explicitly only for the Apple Pay path.
-struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
+struct BuyProductIntent: AppIntent, ForegroundContinuableIntent, LiveActivityIntent {
     static let title: LocalizedStringResource = "Order a Product"
     static let description = IntentDescription("Search Zinc for a product and order the top match.")
 
@@ -56,7 +56,12 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
         }
 
         // Keyed path: place the wallet-funded order right here, headless. No
-        // Apple Pay, no app — Siri's confirmation above is the authorization.
+        // Apple Pay and no app to foreground — the order is wallet-funded and
+        // BiometricAuth (Face ID/passcode) inside OrderCoordinator authorizes it.
+        // Conforming to LiveActivityIntent is what lets us start the order's Live
+        // Activity from this background launch; live status then updates on the
+        // next app foreground (OrderTracker.resumeAll), since there's no backend
+        // push to drive it while the app is suspended.
         if !ZincCredentials.apiKey.isEmpty {
             do {
                 let order = try await OrderCoordinator().purchase(
@@ -66,12 +71,15 @@ struct BuyProductIntent: AppIntent, ForegroundContinuableIntent {
                 store.upsert(order)
                 OrderTracker.shared.track(order)
                 LiveActivityManager.start(for: order)
-                return .result(dialog: "Ordered \(top.title). I'll keep track of it for you.")
+                return .result(dialog: "Ordered \(top.title). You'll find it in your orders.")
             } catch let error as PaymentError {
                 let reason = error.errorDescription ?? "I couldn't place that order."
                 return .result(dialog: "\(reason)")
             } catch {
-                return .result(dialog: "I couldn't place that order: \(error.localizedDescription)")
+                // Don't read a raw server error body aloud — ZincError.http carries
+                // the response body, which is unintelligible spoken and can leak
+                // internals. Speak a generic line instead.
+                return .result(dialog: "Sorry, I couldn't place that order. Please try again in the Zinc app.")
             }
         }
 

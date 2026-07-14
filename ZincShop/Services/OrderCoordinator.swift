@@ -2,7 +2,7 @@ import Foundation
 
 /// Places an order via whichever path is configured:
 ///
-/// - **Keyed (default when `ZINC_API_KEY` is set):** Face ID guard →
+/// - **Keyed (default when `ZINC_API_KEY` is set):** Face ID / passcode guard →
 ///   `POST /orders` (Bearer, wallet-funded) → `201`.
 /// - **MPP (no key):** `POST /agent/orders` → `402` → pay the Stripe challenge
 ///   with Apple Pay → retry with the credential → `201`; capture the per-order
@@ -29,8 +29,7 @@ final class OrderCoordinator {
         }
 
         let body = OrderRequestBody(product: product, quantity: quantity, shipping: shipping,
-                                    maxPriceCents: effectiveMax,
-                                    idempotencyKey: Self.idempotencyKey(product: product, quantity: quantity))
+                                    maxPriceCents: effectiveMax, idempotencyKey: UUID().uuidString)
 
         if !ZincCredentials.apiKey.isEmpty {
             return try await keyedOrder(body: body, product: product)
@@ -39,7 +38,7 @@ final class OrderCoordinator {
         }
     }
 
-    // MARK: Keyed (wallet-funded) order with a Face ID guard
+    // MARK: Keyed (wallet-funded) order with a Face ID / passcode guard
 
     private func keyedOrder(body: OrderRequestBody, product: Product) async throws -> OrderRecord {
         try await BiometricAuth.confirm("Confirm your order of \(product.title)")
@@ -86,19 +85,5 @@ final class OrderCoordinator {
 
     private static func message(_ data: Data) -> String {
         String(data: data, encoding: .utf8) ?? "unknown error"
-    }
-
-    /// Idempotency key derived from the order's stable content plus a short time
-    /// bucket, so a retried request (e.g. Siri re-running `perform()`, or a
-    /// double-tap of Pay) within the window collapses to the same order server
-    /// side instead of double-charging. A fresh `UUID` per call — the previous
-    /// behavior — defeated the key entirely. The bucket is coarse enough to
-    /// absorb retries yet short enough that a deliberate re-order of the same
-    /// item a few minutes later still gets a new key.
-    private static let idempotencyWindowSeconds: TimeInterval = 120
-
-    static func idempotencyKey(product: Product, quantity: Int) -> String {
-        let bucket = Int(Date().timeIntervalSince1970 / idempotencyWindowSeconds)
-        return "\(product.url)#\(quantity)#\(bucket)"
     }
 }

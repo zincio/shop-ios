@@ -102,6 +102,12 @@ struct PurchaseFlowView: View {
     }
 
     private func pay() async {
+        // In-flight guard: a fast double-tap can enqueue two `pay()` tasks while
+        // `phase` is still `.ready` (the `.paying` swap below is what normally
+        // hides the button). Bail if an order is already in flight so we don't
+        // submit twice. Runs before the first `await`, so main-actor
+        // serialization guarantees the second task sees `.paying` and returns.
+        guard phase == .ready else { return }
         phase = .paying
         do {
             let order = try await coordinator.purchase(

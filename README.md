@@ -39,10 +39,12 @@ real captured challenge.
    see `ZincShopShortcuts.swift`.)
 2. The intent resolves the product and shows the match + price in a confirmation
    snippet.
-3. On confirm, the app foregrounds and places the order:
-   - **With an API key (default):** Face ID guards, then `POST /orders`
-     (Bearer, wallet-funded).
-   - **Without a key:** Apple Pay pays the MPP `402` challenge (`/agent/orders`).
+3. On confirm, the order is placed:
+   - **With an API key (default):** placed right in Siri, headless — Face ID /
+     passcode guards it, then `POST /orders` (Bearer, wallet-funded). The app
+     never opens.
+   - **Without a key:** the app foregrounds so Apple Pay can pay the MPP `402`
+     challenge (`/agent/orders`) — Apple Pay can't present from a background intent.
 4. Order placed → tracked via a Live Activity (Lock Screen / Dynamic Island),
    polled with the Bearer key (keyed) or the per-order `X-Api-Key` (MPP).
 

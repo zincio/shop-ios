@@ -2,7 +2,7 @@ import Foundation
 
 /// Places an order via whichever path is configured:
 ///
-/// - **Keyed (default when `ZINC_API_KEY` is set):** Face ID guard →
+/// - **Keyed (default when `ZINC_API_KEY` is set):** Face ID / passcode guard →
 ///   `POST /orders` (Bearer, wallet-funded) → `201`.
 /// - **MPP (no key):** `POST /agent/orders` → `402` → pay the Stripe challenge
 ///   with Apple Pay → retry with the credential → `201`; capture the per-order
@@ -38,7 +38,7 @@ final class OrderCoordinator {
         }
     }
 
-    // MARK: Keyed (wallet-funded) order with a Face ID guard
+    // MARK: Keyed (wallet-funded) order with a Face ID / passcode guard
 
     private func keyedOrder(body: OrderRequestBody, product: Product) async throws -> OrderRecord {
         try await BiometricAuth.confirm("Confirm your order of \(product.title)")

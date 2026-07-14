@@ -91,16 +91,11 @@ struct StatusBadge: View {
     let order: OrderRecord
 
     var body: some View {
-        HStack(spacing: 4) {
-            if order.isInProgress {
-                ProgressView().controlSize(.mini)
-            }
-            Text(label)
-                .font(.caption2.weight(.semibold))
-        }
-        .padding(.horizontal, 8).padding(.vertical, 3)
-        .background(tint.opacity(0.15), in: Capsule())
-        .foregroundStyle(tint)
+        Text(label)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(tint.opacity(0.15), in: Capsule())
+            .foregroundStyle(tint)
     }
 
     private var label: String { order.jobResultError != nil ? "Failed" : order.statusDisplay }

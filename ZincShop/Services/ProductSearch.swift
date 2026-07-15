@@ -5,13 +5,12 @@ protocol ProductSearching {
 }
 
 /// Maps Zinc search responses into `Product`, handling both shapes:
-///  - cross-retailer `GET /search` and MPP `GET /agent/search`: items carry a
-///    `url` and per-item `retailer`.
+///  - cross-retailer `GET /search`: items carry a `url` and per-item `retailer`.
 ///  - retailer-specific `GET /products/search`: items carry a `product_id`
 ///    (e.g. an Amazon ASIN) and no `retailer`; the URL is derived from
 ///    `defaultRetailer` + `product_id`.
 /// Decodes defensively; items missing an id/title are skipped, and anything
-/// unmappable yields an empty list (→ fallback).
+/// unmappable yields an empty list (shown as no results).
 enum SearchResponseMapper {
     static func products(from data: Data, defaultRetailer: String = "amazon") -> [Product] {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

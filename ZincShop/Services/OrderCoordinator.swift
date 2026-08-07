@@ -1,8 +1,9 @@
 import Foundation
+import CryptoKit
 
 /// Places an order via whichever path is configured:
 ///
-/// - **Keyed (default when `ZINC_API_KEY` is set):** Face ID / passcode guard →
+/// - **Keyed (default when `ZINC_API_KEY` is set):** Face ID guard →
 ///   `POST /orders` (Bearer, wallet-funded) → `201`.
 /// - **MPP (no key):** `POST /agent/orders` → `402` → pay the Stripe challenge
 ///   with Apple Pay → retry with the credential → `201`; capture the per-order
@@ -17,31 +18,49 @@ final class OrderCoordinator {
         self.applePay = applePay ?? ApplePayService()
     }
 
+    /// - Parameter requireBiometric: gate the keyed path behind Face ID. The
+    ///   in-app flow passes `true`; the Siri path passes `false` because Siri's
+    ///   own order confirmation is the authorization and Face ID can't reliably
+    ///   present from a background intent.
     func purchase(product: Product, quantity: Int, shipping: ShippingProfile,
-                  maxPriceCents: Int, devMode: Bool = false) async throws -> OrderRecord {
+                  maxPriceCents: Int, devMode: Bool = false,
+                  requireBiometric: Bool = true) async throws -> OrderRecord {
+        // max_price is sized to THIS item (plus ~30% headroom for tax/shipping),
+        // NOT the flat price cap. Sending the cap made Zinc secure roughly the
+        // whole cap against the wallet, so a cheap item tripped "insufficient
+        // funds" (402) on a small balance. The user's cap still bounds it, and
+        // the guard still blocks items whose price alone exceeds the cap.
         // Dev mode sends max_price = 0 so the order can never finalize (safe
         // testing); the price-cap guard is skipped since 0 would always trip it.
-        let effectiveMax = devMode ? 0 : maxPriceCents
-        if !devMode {
+        let effectiveMax: Int
+        if devMode {
+            effectiveMax = 0
+        } else {
             guard product.priceCents <= maxPriceCents else {
                 throw PaymentError.overPriceCap(amountCents: product.priceCents, capCents: maxPriceCents)
             }
+            let withHeadroom = Int(Double(product.priceCents) * 1.3)
+            effectiveMax = min(maxPriceCents, max(withHeadroom, product.priceCents))
         }
 
         let body = OrderRequestBody(product: product, quantity: quantity, shipping: shipping,
-                                    maxPriceCents: effectiveMax, idempotencyKey: UUID().uuidString)
+                                    maxPriceCents: effectiveMax,
+                                    idempotencyKey: Self.idempotencyKey(for: product))
 
         if !ZincCredentials.apiKey.isEmpty {
-            return try await keyedOrder(body: body, product: product)
+            return try await keyedOrder(body: body, product: product, requireBiometric: requireBiometric)
         } else {
             return try await mppOrder(body: body, product: product, maxPriceCents: effectiveMax)
         }
     }
 
-    // MARK: Keyed (wallet-funded) order with a Face ID / passcode guard
+    // MARK: Keyed (wallet-funded) order with a Face ID guard
 
-    private func keyedOrder(body: OrderRequestBody, product: Product) async throws -> OrderRecord {
-        try await BiometricAuth.confirm("Confirm your order of \(product.title)")
+    private func keyedOrder(body: OrderRequestBody, product: Product,
+                            requireBiometric: Bool) async throws -> OrderRecord {
+        if requireBiometric {
+            try await BiometricAuth.confirm("Confirm your order of \(product.title)")
+        }
         let (resp, data) = try await zinc.createKeyedOrder(body: body)
         guard resp.statusCode == 201 else {
             throw ZincError.http(resp.statusCode, Self.message(data))
@@ -85,5 +104,21 @@ final class OrderCoordinator {
 
     private static func message(_ data: Data) -> String {
         String(data: data, encoding: .utf8) ?? "unknown error"
+    }
+
+    /// Idempotency key that's **stable for the same product within a short
+    /// window**, so an accidental double-tap (or a snippet button firing twice,
+    /// possibly in separate processes) dedupes at Zinc instead of placing two
+    /// orders. A later intentional re-order lands in a new window → new key.
+    /// SHA-256 (not `hashValue`, which is randomized per process) so the key is
+    /// identical across the two executions.
+    private static func idempotencyKey(for product: Product) -> String {
+        let window = Int(Date().timeIntervalSince1970 / 120)   // 2-minute bucket
+        let seed = "\(product.url)|\(window)"
+        let digest = SHA256.hash(data: Data(seed.utf8))
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        // Zinc caps idempotency_key at 36 chars; the full SHA-256 hex is 64.
+        // 32 hex chars (128 bits) is still collision-safe for dedup.
+        return String(hex.prefix(32))
     }
 }

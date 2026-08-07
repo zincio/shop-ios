@@ -7,7 +7,8 @@ confirm, and the order is placed and tracked with a Live Activity.
 It's meant to be read as much as run — a worked example of wiring the Zinc API
 into a native iOS app, including the Apple-platform pieces (App Intents, Visual
 Intelligence, Apple Pay, Live Activities) that make it feel like a real shopping
-assistant. Some iOS 27 features may be required to run this app properly.
+assistant. **Requires the iOS 27 beta and the Xcode 27 beta** — it leans on iOS 27
+App Intents and Visual Intelligence features.
 
 > ⚠️ **Prototype, not production.** For convenience the demo can ship a Zinc API
 > key inside the app bundle. Production app must keep secret keys on a server/backend!
@@ -64,7 +65,10 @@ captured challenge.
 
 ## Prerequisites
 
-- **Xcode 16 or later** (the optional App-Intents end-to-end tests need Xcode 27).
+- **Xcode 27 (beta) and iOS 27 (beta) — required.** The app relies on iOS 27
+  App Intents behavior (the interactive in-Siri ordering flow) and the Visual
+  Intelligence device SDK, and is developed and tested against the iOS 27 /
+  Xcode 27 betas. Earlier Xcode/iOS versions won't build or behave correctly.
 - **[XcodeGen](https://github.com/yonaskolb/XcodeGen)** — `brew install xcodegen`.
 - A **Zinc API key** — sign up at [zinc.com](https://www.zinc.com/docs). Optional:
   skip it to explore the keyless MPP + demo-catalog paths.
@@ -123,22 +127,29 @@ run until you do).
 
 ## Voice flow
 
-1. **"Hey Siri, order paper towels on Zinc."** The product is an `AppEntity`
-   (`ProductEntity`), so Siri parses it inline; say just "order on Zinc" to be
-   prompted. (Avoid the verb "buy" — it collides with Siri's built-in purchase
-   domain; see `ZincShopShortcuts.swift`.)
-2. Siri resolves the product and shows the match + price in a confirmation snippet.
-3. On confirm, the order is placed:
-   - **With an API key (default):** placed right in Siri, headless — **Face ID /
-     passcode** authorizes it, then `POST /orders` (`Bearer`, wallet-funded). The
-     app never opens.
+1. **"Hey Siri, order on Zinc."** (Also "Get me something on Zinc", "Reorder on
+   Zinc", ….) App Shortcut phrases can't carry an open-ended product (Apple
+   requires a finite vocabulary for phrase parameters), so the phrases are
+   **parameterless** and Siri then asks **"What would you like to order?"**
+   (Avoid the verb "buy" — it collides with Siri's built-in purchase domain; see
+   `ZincShopShortcuts.swift`.)
+2. You **say the product**. A live Zinc search runs and Siri shows the **top 5
+   matches** — image, concise title, and a "$price · Retailer ★rating" subtitle —
+   as a picker, entirely in the Siri UI.
+3. **Tap a match** and the order is placed:
+   - **With an API key (default):** placed right in Siri, headless — `POST /orders`
+     (`Bearer`, wallet-funded). The app never opens; you get an "Ordered ✓" card.
+     (In-app buys are additionally gated by **Face ID / passcode**.)
    - **Without a key:** the app foregrounds so **Apple Pay** can pay the MPP `402`
      challenge — Apple Pay can't present from a background intent.
 4. The order is tracked with a **Live Activity** (Lock Screen / Dynamic Island),
    polled with the `Bearer` key (keyed) or the per-order `X-Api-Key` (MPP).
 
-You can also search and tap-to-buy entirely in-app on the Shop tab — no voice
-required.
+> **On Siri routing (iOS 27):** spoken *product* phrases ("order paper towels on
+> Zinc") are intercepted by Siri's built-in commerce/search handling and don't
+> reliably reach the app, so the shipped flow is the two-turn one above (ask →
+> speak → pick). You can also search and tap-to-buy entirely in-app on the Shop
+> tab — no voice required.
 
 ## Visual Intelligence
 
@@ -158,8 +169,8 @@ shortcut, it isn't enabled yet:
    **Use with Siri** is on. (Or **Settings → Apps → Zinc → Siri**.)
 2. Launch Zinc once and finish onboarding — a shipping address is required by the
    order intent.
-3. Say **"Hey Siri, order paper towels on Zinc"** (also try toilet paper, coffee,
-   laundry detergent, dish soap). Give Siri ~30s after install to index.
+3. Say **"Hey Siri, order on Zinc"** (or "Get me something on Zinc"), then say the
+   product when Siri asks. Give Siri ~30s after install to index.
 
 > Non-voice entry points that always work: tap **"Order a Product"** in the
 > Shortcuts app, Spotlight, or the Action Button.

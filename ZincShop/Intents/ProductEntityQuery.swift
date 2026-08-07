@@ -20,14 +20,14 @@ enum ProductEntityMapping {
 /// live Zinc search is enabled, or `MockCatalog` in this prototype.
 struct ProductEntityQuery: EntityStringQuery {
     /// Resolve arbitrary spoken/typed text (the App Shortcut parameter path).
-    /// Kept in the search API's relevance order so the Shortcuts/Siri picker
-    /// lists the best-matching product first (see `ProductEntityMapping`).
+    /// Returns the **5 most relevant** matches in the search API's relevance
+    /// order so Siri's picker stays short and leads with the best match.
     func entities(matching string: String) async throws -> [ProductEntity] {
         // Keep resolution resilient: a thrown search error (rejected key, network
         // blip) must NOT bubble up to Siri, which reacts by abandoning the
         // headless flow (and can bounce into the app). Return no matches instead
         // — the in-app search screen is where a bad key is surfaced to the user.
-        let products = (try? await ZincClient().search(string)) ?? []
+        let products = Array(((try? await ZincClient().search(string)) ?? []).prefix(5))
         await ProductEntityCache.shared.store(products)
         return ProductEntityMapping.entities(from: products)
     }

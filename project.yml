@@ -56,7 +56,7 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    CURRENT_PROJECT_VERSION: "4"
     # Automatic signing so the app installs on a physical device (and simulator).
     # The Team ID comes from Config/Secrets.xcconfig (gitignored) via
     # $(DEVELOPMENT_TEAM) so no one's personal team is committed; blank ⇒

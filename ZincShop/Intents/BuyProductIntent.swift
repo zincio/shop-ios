@@ -18,7 +18,7 @@ import SwiftUI
 /// on `ZincCredentials.apiKey` if that case ever matters.
 struct BuyProductIntent: AppIntent {
     static let title: LocalizedStringResource = "Order a Product"
-    static let description = IntentDescription("Search Zinc and order the product you pick, right in Siri.")
+    static let description = IntentDescription("Search Zinc and order the product you pick, hands-free.")
 
     @Parameter(title: "Product", requestValueDialog: "What would you like to order?")
     var product: ProductEntity
